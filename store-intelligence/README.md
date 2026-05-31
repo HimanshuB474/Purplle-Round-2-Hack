@@ -2,67 +2,85 @@
 
 Purplle Tech Challenge 2026 — Round 2. Brigade Bangalore (`ST1008` / `STORE_BLR_002`).
 
-## Quick Start (5 commands)
+## Quick start (reviewers)
 
 ```bash
 git clone git@github.com:HimanshuB474/Purplle-Round-2-Hack.git
 cd Purplle-Round-2-Hack/store-intelligence
+
 docker compose up -d --build
-python -m pipeline.detect          # host — needs CCTV clips + pip install -r requirements.txt
-python scripts/ingest_events.py    # POST events.jsonl → API
+python scripts/ingest_events.py
 curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 ```
 
-**Live dashboard:** http://localhost:8000/dashboard (click **Live replay** after `docker compose up`)
+**Live dashboard:** http://localhost:8000/dashboard — **Live replay** ingests `data/events.jsonl` in batches so metrics update on screen.
 
-**Verify Docker only:** `python scripts/verify_docker.py`
+**Verify:** `python scripts/verify_docker.py` · `pytest` (46 tests) · `python scripts/validate_part_bc.py`
 
-**Windows:** If `docker` is not on PATH, start Docker Desktop first. Compose uses API-only image (~150 MB, no PyTorch).
+## Committed pipeline output
 
-Pipeline writes `data/events.jsonl` with `store_id: STORE_BLR_002`. Verify: `python scripts/verify_events.py`.
+| File | Contents |
+|------|----------|
+| `data/events.jsonl` | **299** events, **all 8** `event_type` values (3× `BILLING_QUEUE_ABANDON`, 32 staff-tagged) |
+| `data/sample_events.jsonl` | 24 events for CI / schema checks |
 
-## API Endpoints
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/` | API index (links to endpoints) |
-| GET | `/health` | Service + feed status (`STALE_FEED` if lag >10 min) |
-| GET | `/docs` | Swagger UI |
-| POST | `/events/ingest` | Batch ingest (≤500, idempotent) |
-| GET | `/stores/{id}/metrics?date=` | Visitors, conversion, dwell |
-| GET | `/stores/{id}/funnel?date=` | Session funnel |
-| GET | `/stores/{id}/heatmap?date=` | Zone scores |
-| GET | `/stores/{id}/anomalies?date=` | Queue spike, conversion drop, dead zones |
-
-Store IDs: `ST1008` (canonical) and `STORE_BLR_002` (alias). Use `?date=2026-04-10` for sample/POS data.
-
-## Verify
+Generated with:
 
 ```bash
-pytest
-python scripts/validate_part_bc.py
-python scripts/verify_phase2.py
-python scripts/verify_events.py
+python -m pipeline.detect --root . --no-pos-filter
 ```
+
+(`--no-pos-filter` keeps queue-abandon events that a POS correlation would treat as false positives.)
+
+## Detection pipeline
+
+| Step | Module |
+|------|--------|
+| Person detect + track | `pipeline/detect.py` (YOLOv8n + ByteTrack) |
+| Zones / entry line | `pipeline/zones.py`, `data/store_layout.json` |
+| Staff (CAM 4) | HOG fallback + `is_staff=true` |
+| Cross-camera IDs | `pipeline/reid.py` (120s gap + HSV histogram; `--no-reid` off) |
+| Abandon cleanup | `pipeline/pos_filter.py` (optional; `--no-pos-filter` skips) |
+| Emit | `data/events.jsonl` |
+
+**Flags**
+
+```bash
+python -m pipeline.detect --root .                 # Re-ID on, softer POS filter
+python -m pipeline.detect --root . --no-pos-filter # all abandons kept (matches commit)
+python -m pipeline.detect --root . --no-reid       # per-track VIS IDs only
+```
+
+**Requires:** `../CCTV Footage/CAM 1.mp4` … `CAM 5.mp4` and `pip install -r requirements.txt`.
+
+## API
+
+| Method | Path |
+|--------|------|
+| GET | `/health` |
+| POST | `/events/ingest` |
+| GET | `/stores/{id}/metrics?date=` |
+| GET | `/stores/{id}/funnel?date=` |
+| GET | `/stores/{id}/heatmap?date=` |
+| GET | `/stores/{id}/anomalies?date=` |
+| GET | `/dashboard` |
+
+Store IDs: `ST1008` and alias `STORE_BLR_002`. Sample date: `2026-04-10`.
+
+## Intelligence layer (my rules)
+
+- **Sessions:** `app/sessions.py` — staff excluded; REENTRY does not double ENTRY in funnel.
+- **Conversion:** each of 24 POS rows converts **at most one** visitor (closest billing event in the 5‑minute window before txn).
+- **Metrics:** compute-on-read from SQLite — no hardcoded counts.
 
 ## Documentation
 
 | Doc | Path |
 |-----|------|
-| Context index | [docs/context/README.md](docs/context/README.md) |
-| Design (submit) | [docs/DESIGN.md](docs/DESIGN.md) |
-| Choices (submit) | [docs/CHOICES.md](docs/CHOICES.md) |
-
-## Data in repo
-
-Committed under `data/`: `events.jsonl`, `sample_events.jsonl`, `pos_transactions.csv`, `store_layout.json`, layout images.
-
-**Local only (not in git):** `../CCTV Footage/*.mp4` for re-running `python -m pipeline.detect`.
-
-## Known gaps (reviewers)
-
-Documented in [`docs/DESIGN.md`](docs/DESIGN.md#9-known-gaps--reviewer-faq): no cross-camera Re-ID; `BILLING_QUEUE_ABANDON` only in `sample_events.jsonl`; conversion heuristic. **Dashboard:** [`/dashboard`](http://localhost:8000/dashboard).
+| Design | [docs/DESIGN.md](docs/DESIGN.md) |
+| Choices | [docs/CHOICES.md](docs/CHOICES.md) |
+| Context | [docs/context/README.md](docs/context/README.md) |
 
 ## Status
 
-- **Phase 1–3:** Complete — `data/events.jsonl` committed; regen with `python -m pipeline.detect` + `scripts/ingest_events.py`
+Phases 1–3 + Part E dashboard complete. See [docs/PRE-PHASE3-CHECKLIST.md](docs/PRE-PHASE3-CHECKLIST.md).

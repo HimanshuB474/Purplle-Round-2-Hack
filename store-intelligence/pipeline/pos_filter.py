@@ -1,8 +1,8 @@
-"""Post-process pipeline events — drop false BILLING_QUEUE_ABANDON when POS follows."""
+"""Post-process pipeline events — optional BILLING_QUEUE_ABANDON cleanup."""
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from app.pos import conversion_window_start, get_transactions_for_store_date
@@ -12,15 +12,24 @@ def _parse_ts(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None)
 
 
-def _visitor_has_pos_conversion(
+def _abandon_is_false_positive(
+    abandon_ts: datetime,
     billing_times: list[datetime],
     transactions: list,
 ) -> bool:
-    """True when billing activity falls in the 5-min window before a POS txn."""
-    for billing_ts in billing_times:
-        for txn in transactions:
-            window_start = conversion_window_start(txn.timestamp)
-            if window_start <= billing_ts <= txn.timestamp:
+    """
+    Drop abandon only when conversion is strongly indicated:
+    - POS txn within 5 min *after* abandon (paid after leaving queue), or
+    - billing in [T-5m, T] window before a txn that occurred *before* abandon.
+    """
+    for txn in transactions:
+        txn_ts = txn.timestamp
+        if billing_times and abandon_ts <= txn_ts <= abandon_ts + timedelta(minutes=5):
+            if any(bt <= abandon_ts for bt in billing_times):
+                return True
+        for billing_ts in billing_times:
+            window_start = conversion_window_start(txn_ts)
+            if window_start <= billing_ts <= txn_ts < abandon_ts:
                 return True
     return False
 
@@ -29,7 +38,12 @@ def filter_false_billing_abandons(
     events: list[dict[str, Any]],
     store_id: str,
     target_date: date,
+    *,
+    enabled: bool = True,
 ) -> list[dict[str, Any]]:
+    if not enabled:
+        return events
+
     transactions = get_transactions_for_store_date("ST1008", target_date)
 
     billing_by_visitor: dict[str, list[datetime]] = {}
@@ -49,7 +63,7 @@ def filter_false_billing_abandons(
             kept.append(event)
             continue
         billing_times = billing_by_visitor.get(event["visitor_id"], [])
-        if billing_times and _visitor_has_pos_conversion(billing_times, transactions):
+        if billing_times and _abandon_is_false_positive(_parse_ts(event["timestamp"]), billing_times, transactions):
             dropped += 1
             continue
         kept.append(event)

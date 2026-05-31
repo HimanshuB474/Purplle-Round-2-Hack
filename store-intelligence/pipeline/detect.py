@@ -26,6 +26,12 @@ from pipeline.config import (
 )
 from pipeline.emit import EventEmitter, frame_to_timestamp, write_jsonl
 from pipeline.pos_filter import filter_false_billing_abandons
+from pipeline.reid import (
+    CrossCameraRegistry,
+    appearance_histogram,
+    merge_visitor_ids_post,
+    parse_event_ts,
+)
 from pipeline.staff import classify_staff
 from pipeline.staff_detect import detect_hog_boxes, match_hog_track
 from pipeline.tracker import TrackState, new_visitor_id
@@ -370,6 +376,7 @@ def process_camera(
     model=None,
     verbose: bool = True,
     visitor_seq: list[int] | None = None,
+    reid_registry: CrossCameraRegistry | None = None,
 ) -> EventEmitter:
     clip_path = (project_root / camera["clip_path"]).resolve()
     if not clip_path.exists():
@@ -471,14 +478,46 @@ def process_camera(
 
             if tid not in tracks:
                 is_staff, _ = classify_staff(role, exclude, frame, (x1, y1, x2, y2))
-                visitor_seq[0] += 1
+                ts_dt = parse_event_ts(timestamp)
+                app_hist = None if is_staff else appearance_histogram(frame, x1, y1, x2, y2)
+                matched_id = None
+                if reid_registry is not None and not is_staff:
+                    matched_id = reid_registry.match_or_none(
+                        timestamp=ts_dt,
+                        camera_id=camera_id,
+                        appearance=app_hist,
+                        is_staff=is_staff,
+                    )
+                if matched_id:
+                    visitor_id = matched_id
+                else:
+                    visitor_seq[0] += 1
+                    visitor_id = new_visitor_id(visitor_seq[0])
                 tracks[tid] = TrackState(
                     track_id=tid,
-                    visitor_id=new_visitor_id(visitor_seq[0]),
+                    visitor_id=visitor_id,
                     is_staff=is_staff,
                 )
+                if reid_registry is not None:
+                    reid_registry.register(
+                        visitor_id,
+                        camera_id=camera_id,
+                        timestamp=ts_dt,
+                        is_staff=is_staff,
+                        appearance=app_hist,
+                        has_entry=False,
+                    )
 
             state = tracks[tid]
+            if reid_registry is not None and not state.is_staff:
+                reid_registry.register(
+                    state.visitor_id,
+                    camera_id=camera_id,
+                    timestamp=parse_event_ts(timestamp),
+                    is_staff=False,
+                    appearance=appearance_histogram(frame, x1, y1, x2, y2),
+                    has_entry=state.entry_emitted or state.inside_store,
+                )
 
             # First customer detection on non-entry cameras (entry cam uses line/zone logic)
             if (
@@ -543,6 +582,9 @@ def run_pipeline(
     output_path: Path,
     project_root: Path | None = None,
     include_staff_camera: bool = True,
+    *,
+    apply_pos_filter: bool = True,
+    apply_reid: bool = True,
 ) -> dict[str, int]:
     project_root = project_root or layout_path.parent.parent
     layout = json.loads(layout_path.read_text(encoding="utf-8"))
@@ -555,18 +597,31 @@ def run_pipeline(
     print(f"Store: {store_id} — {store.get('store_name', '')}")
     print(f"Output: {output_path}\n")
 
+    from pipeline.config import REID_ENABLED, REID_POST_PASS
+
     model = _load_model()
     all_events: list[dict[str, Any]] = []
     stats: dict[str, int] = {}
     visitor_seq = [0]
+    reid_registry = CrossCameraRegistry() if (apply_reid and REID_ENABLED) else None
 
-    for cam in store["cameras"]:
+    cameras = sorted(
+        store["cameras"],
+        key=lambda c: (0 if c.get("role") == "ENTRY" else 1, c.get("camera_id", "")),
+    )
+
+    for cam in cameras:
         if cam.get("exclude_from_customer_metrics") and not include_staff_camera:
             print(f"  SKIP: {cam['camera_id']}")
             continue
         try:
             emitter = process_camera(
-                cam, store_id, project_root, model=model, visitor_seq=visitor_seq
+                cam,
+                store_id,
+                project_root,
+                model=model,
+                visitor_seq=visitor_seq,
+                reid_registry=reid_registry,
             )
             all_events.extend(emitter.events)
             stats[cam["camera_id"]] = len(emitter.events)
@@ -574,10 +629,23 @@ def run_pipeline(
             print(f"  ERROR: {exc}")
             stats[cam["camera_id"]] = 0
 
-    all_events = filter_false_billing_abandons(all_events, store_id, target_date)
+    if apply_reid and REID_ENABLED and REID_POST_PASS:
+        before = len({e["visitor_id"] for e in all_events if not e.get("is_staff")})
+        all_events = merge_visitor_ids_post(all_events)
+        after = len({e["visitor_id"] for e in all_events if not e.get("is_staff")})
+        if after < before:
+            print(f"  Re-ID post-pass: {before} -> {after} unique visitor IDs")
+
+    all_events = filter_false_billing_abandons(
+        all_events, store_id, target_date, enabled=apply_pos_filter
+    )
+    abandon_n = sum(1 for e in all_events if e.get("event_type") == "BILLING_QUEUE_ABANDON")
     write_jsonl(all_events, output_path)
     staff_n = sum(1 for e in all_events if e.get("is_staff"))
-    print(f"\nWrote {len(all_events)} events to {output_path} ({staff_n} staff-tagged)")
+    print(
+        f"\nWrote {len(all_events)} events to {output_path} "
+        f"({staff_n} staff, {abandon_n} BILLING_QUEUE_ABANDON)"
+    )
     return stats
 
 
@@ -588,10 +656,22 @@ def main() -> None:
     parser.add_argument("--layout", default="data/store_layout.json")
     parser.add_argument("--output", default="data/events.jsonl")
     parser.add_argument("--root", default=None, help="Project root (store-intelligence/)")
+    parser.add_argument(
+        "--no-pos-filter",
+        action="store_true",
+        help="Keep all BILLING_QUEUE_ABANDON events (no POS false-positive removal)",
+    )
+    parser.add_argument("--no-reid", action="store_true", help="Disable cross-camera visitor merge")
     args = parser.parse_args()
 
     root = Path(args.root) if args.root else Path(__file__).resolve().parents[1]
-    run_pipeline(root / args.layout, root / args.output, root)
+    run_pipeline(
+        root / args.layout,
+        root / args.output,
+        root,
+        apply_pos_filter=not args.no_pos_filter,
+        apply_reid=not args.no_reid,
+    )
 
 
 if __name__ == "__main__":

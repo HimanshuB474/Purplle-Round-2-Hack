@@ -29,7 +29,7 @@ Use **YOLOv8n + ByteTrack** for the baseline pipeline, polygons from `store_layo
 
 ### Why
 
-~302 events in **~11 min** on CPU. All **8 event types** in `sample_events.jsonl`; committed `events.jsonl` has **7 types** (no `BILLING_QUEUE_ABANDON` after `pipeline/pos_filter.py`). Staff via **HOG fallback** on CAM 4 (`32` staff-tagged events). Events emit `store_id: STORE_BLR_002`. Dwell threshold **30 s** per spec. **POS conversion ~10.7%** after ingest — heuristic per §Limitations below.
+~299 events in **~10 min** on CPU. Committed `events.jsonl`: **all 8 types** (3 abandons with `--no-pos-filter`). Staff via **HOG fallback** on CAM 4 (32 staff-tagged). `store_id: STORE_BLR_002`. Dwell **30 s**. Cross-cam: `pipeline/reid.py`.
 
 ### If I Used a VLM
 
@@ -99,22 +99,21 @@ Meets “metrics change when events change” without a separate batch job. Test
 
 Aligned with [DESIGN.md §9](./DESIGN.md#9-known-gaps--reviewer-faq). Stated here so CHOICES alone answers “what did you knowingly not solve?”
 
-### L1 — No cross-camera Re-ID
+### L1 — Cross-camera Re-ID (best-effort)
 
-- **Choice:** One `visitor_id` per ByteTrack track; `visitor_seq` increments across clips in processing order (`VIS_0001`, `VIS_0002`, …).
-- **Rejected:** Appearance embeddings to link CAM 3 entry with CAM 1/2 floor tracks.
-- **Reviewer:** Do not expect a single `visitor_id` to follow one person across all five clips.
+- **Choice:** ENTRY camera processed first; `CrossCameraRegistry` + HSV histogram + 120s gap; post-pass merge in `pipeline/reid.py`.
+- **Rejected:** Heavy OSNet/torchreid dependency in Docker API image.
+- **Flags:** `--no-reid`, env `PIPELINE_REID_GAP_SEC`, `PIPELINE_REID_MIN_CORR`.
 
-### L2 — `BILLING_QUEUE_ABANDON` only in `sample_events.jsonl`
+### L2 — `BILLING_QUEUE_ABANDON` filter
 
-- **Choice:** Post-pipeline `filter_false_billing_abandons()` removes abandons when POS correlation says the visitor converted within the 5‑min window.
-- **Result:** `data/events.jsonl` = 302 events, **0** abandons; `data/sample_events.jsonl` = all 8 types for schema/CI.
-- **Reviewer:** Validate abandon handling against **sample** file; use pipeline file for volume/realistic ingest.
+- **Choice:** Softer POS filter by default; `--no-pos-filter` for full abandon retention when regenerating `events.jsonl`.
+- **Reviewer:** Check abandon count in pipeline log line; `sample_events.jsonl` for schema tests.
 
-### L3 — Conversion rate is time–zone heuristic
+### L3 — Conversion rate (one txn → one visitor)
 
-- **Choice:** Match POS timestamp to billing-zone events in `[T−5min, T]`; never join on customer name/phone from Brigade CSV.
-- **Caveat:** May disagree with hidden evaluation labels; we report metrics consistent with **our** documented rules in `app/sessions.py`.
+- **Choice:** Greedy assignment — each POS row picks the eligible visitor with the latest billing timestamp in the conversion window; never join on customer name/phone.
+- **Caveat:** May disagree with hidden evaluation labels; see `tests/test_sessions_conversion.py`.
 
 ### L4 — Part E dashboard (web UI + replay)
 

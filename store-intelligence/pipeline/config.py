@@ -19,3 +19,10 @@ MAX_FRAMES = int(os.getenv("PIPELINE_MAX_FRAMES", "0"))  # 0 = no limit
 YOLO_MODEL = os.getenv("PIPELINE_YOLO_MODEL", "yolov8n.pt")
 # Event store_id in JSONL (API alias); canonical DB key remains ST1008 after ingest normalize
 EVENT_STORE_ID = os.getenv("PIPELINE_EVENT_STORE_ID", "STORE_BLR_002")
+
+# Cross-camera Re-ID (time + optional HSV appearance)
+REID_ENABLED = os.getenv("PIPELINE_REID", "1") not in ("0", "false", "False")
+REID_TIME_GAP_SEC = float(os.getenv("PIPELINE_REID_GAP_SEC", "120"))
+REID_USE_APPEARANCE = os.getenv("PIPELINE_REID_APPEARANCE", "1") not in ("0", "false", "False")
+REID_APPEARANCE_MIN_CORRELATION = float(os.getenv("PIPELINE_REID_MIN_CORR", "0.62"))
+REID_POST_PASS = os.getenv("PIPELINE_REID_POST", "0") not in ("0", "false", "False")

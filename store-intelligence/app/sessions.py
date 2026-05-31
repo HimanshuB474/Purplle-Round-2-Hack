@@ -113,17 +113,31 @@ def unique_visitors_with_entry(events: list[EventRow]) -> set[str]:
 
 
 def apply_pos_conversions(sessions: list[VisitorSession], transactions: list[PosTransaction]) -> None:
-    for session in sessions:
-        if session.is_staff or not session.reached_billing:
-            continue
-        billing_times = [e.timestamp for e in session.events if _is_billing_event(e)]
-        if not billing_times:
-            continue
-        for txn in transactions:
-            window_start = conversion_window_start(txn.timestamp)
-            if any(window_start <= ts <= txn.timestamp for ts in billing_times):
-                session.converted = True
-                break
+    """Assign at most one converted visitor per POS transaction (closest billing in window)."""
+    eligible = [s for s in sessions if not s.is_staff and s.reached_billing]
+    assigned: set[str] = set()
+
+    for txn in sorted(transactions, key=lambda t: t.timestamp):
+        window_start = conversion_window_start(txn.timestamp)
+        best_session: VisitorSession | None = None
+        best_delta: float | None = None
+
+        for session in eligible:
+            if session.visitor_id in assigned:
+                continue
+            billing_times = [e.timestamp for e in session.events if _is_billing_event(e)]
+            qualifying = [ts for ts in billing_times if window_start <= ts <= txn.timestamp]
+            if not qualifying:
+                continue
+            last_billing = max(qualifying)
+            delta = (txn.timestamp - last_billing).total_seconds()
+            if best_delta is None or delta < best_delta:
+                best_delta = delta
+                best_session = session
+
+        if best_session is not None:
+            best_session.converted = True
+            assigned.add(best_session.visitor_id)
 
 
 def funnel_counts(sessions: list[VisitorSession], events: list[EventRow]) -> dict[str, int]:

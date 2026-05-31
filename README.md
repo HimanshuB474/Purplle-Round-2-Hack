@@ -2,7 +2,7 @@
 
 **Store Intelligence** for Brigade Bangalore (`ST1008` / `STORE_BLR_002`): CCTV → detection pipeline → events → FastAPI analytics.
 
-All submission code lives in **[`store-intelligence/`](./store-intelligence/)**.
+Submission code: **[`store-intelligence/`](./store-intelligence/)**.
 
 ## Quick start (reviewers)
 
@@ -16,64 +16,47 @@ curl "http://localhost:8000/health"
 curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 ```
 
-**Live dashboard (Part E):** http://localhost:8000/dashboard → click **Live replay** to stream events and watch metrics update.
+**Live dashboard (Part E):** http://localhost:8000/dashboard → **Live replay** streams `data/events.jsonl` and updates metrics in real time.
 
-**Docker smoke test:** `python scripts/verify_docker.py`  
-**Full validation:** `python scripts/validate_part_bc.py`  
-**Tests:** `pytest` (from `store-intelligence/`)
+**Verify:** `python scripts/verify_docker.py` · `python scripts/validate_part_bc.py` · `pytest` (46 tests)
 
-Pre-generated pipeline output is committed as `store-intelligence/data/events.jsonl` (~302 events). Re-running CV locally requires CCTV clips (not in git; see below).
+## What is committed
 
-## Repository layout
+| Artifact | Details |
+|----------|---------|
+| `data/events.jsonl` | **299** pipeline events, **all 8 types** (incl. **3** `BILLING_QUEUE_ABANDON`), `store_id: STORE_BLR_002` |
+| `data/sample_events.jsonl` | 24 schema examples for CI |
+| API + Docker | Six endpoints, `docker compose up` on port 8000 |
 
-| Path | Purpose |
-|------|---------|
-| [`store-intelligence/`](./store-intelligence/) | Pipeline, API, tests, Docker, committed `data/` |
-| [`store-intelligence/docs/DESIGN.md`](./store-intelligence/docs/DESIGN.md) | Architecture (submission) |
-| [`store-intelligence/docs/CHOICES.md`](./store-intelligence/docs/CHOICES.md) | Three design decisions (submission) |
-| [`CONTEXT.md`](./CONTEXT.md) | Dev context index → `store-intelligence/docs/context/` |
+Regenerating events needs local **`../CCTV Footage/*.mp4`** (gitignored, ~650 MB).
 
-## API (summary)
+## Pipeline (how I built it)
 
-| Method | Path |
-|--------|------|
-| POST | `/events/ingest` |
-| GET | `/stores/{id}/metrics?date=` |
-| GET | `/stores/{id}/funnel?date=` |
-| GET | `/stores/{id}/heatmap?date=` |
-| GET | `/stores/{id}/anomalies?date=` |
-| GET | `/health` |
+YOLOv8n + ByteTrack on five Brigade clips → `python -m pipeline.detect` (see [`store-intelligence/README.md`](./store-intelligence/README.md)).
 
-Swagger: `http://localhost:8000/docs` after `docker compose up`.
+| Feature | Implementation |
+|---------|----------------|
+| Cross-camera linking | `pipeline/reid.py` — ENTRY cam first, 120s window + HSV appearance (`--no-reid` to disable) |
+| Queue abandons | Emitted on billing zone exit; committed file uses `--no-pos-filter`; default run applies softer POS cleanup |
+| Conversion | 5‑min POS window; **one transaction → one visitor** in `app/sessions.py` |
 
-## Not in this repository
-
-These are **local-only** (gitignored). The repo ships derived artifacts under `store-intelligence/data/` instead:
-
-- Challenge PDFs and assessment framework
-- Brigade POS line-item CSV and layout `.xlsx`
-- `CCTV Footage/*.mp4` (~650 MB) — needed only to re-run `python -m pipeline.detect`
-
-Place CCTV at repo root next to `store-intelligence/` if regenerating events:
-
-```
-Purplle-Round-2-Hack/
-├── CCTV Footage/          # local
-│   ├── CAM 1.mp4 … CAM 5.mp4
-└── store-intelligence/
+```bash
+cd store-intelligence
+pip install -r requirements.txt
+python -m pipeline.detect --root .              # default: Re-ID + softer abandon filter
+python -m pipeline.detect --root . --no-pos-filter   # keep every abandon (committed file)
 ```
 
-## Known gaps (documented for reviewers)
+## Docs
 
-| Topic | Summary |
-|-------|---------|
-| Cross-camera Re-ID | Not implemented — `VIS_####` per track, not per person across cameras |
-| `BILLING_QUEUE_ABANDON` | **0** in committed `events.jsonl`; **1** in `sample_events.jsonl` (all 8 types) |
-| Conversion rate | 5‑min POS window + billing zone — heuristic, not ground-truth labels |
-| Live dashboard | **Built** — http://localhost:8000/dashboard |
+| Doc | Path |
+|-----|------|
+| Design | [`store-intelligence/docs/DESIGN.md`](./store-intelligence/docs/DESIGN.md) |
+| Choices | [`store-intelligence/docs/CHOICES.md`](./store-intelligence/docs/CHOICES.md) |
+| Pre-submit | [`store-intelligence/docs/PRE-PHASE3-CHECKLIST.md`](./store-intelligence/docs/PRE-PHASE3-CHECKLIST.md) |
 
-Other gaps (Re-ID, abandon in pipeline file, conversion heuristic): [`DESIGN.md §9`](./store-intelligence/docs/DESIGN.md#9-known-gaps--reviewer-faq).
+## Honest limits (for reviewers)
 
-## Status
-
-Phases 1–3 complete: pipeline, ingest, metrics/funnel/heatmap/anomalies, Docker, 40 tests. Pre-submit checklist: [`store-intelligence/docs/PRE-PHASE3-CHECKLIST.md`](./store-intelligence/docs/PRE-PHASE3-CHECKLIST.md).
+- Re-ID is **best-effort**, not ground-truth identity across cameras.
+- Conversion follows **documented rules** (time + billing zone); may differ from hidden eval labels.
+- Details: [DESIGN.md §9](https://github.com/HimanshuB474/Purplle-Round-2-Hack/blob/main/store-intelligence/docs/DESIGN.md#9-known-gaps--reviewer-faq).

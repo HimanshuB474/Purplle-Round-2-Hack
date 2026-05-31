@@ -35,9 +35,9 @@
 
 | Gap | Where documented | Reviewer action |
 |-----|------------------|-----------------|
-| No cross-camera Re-ID | DESIGN §9.1, CHOICES §Limitations | Expect separate `VIS_####` per track/clip |
-| No `BILLING_QUEUE_ABANDON` in `events.jsonl` | DESIGN §9.2, `data/README.md` | Use `sample_events.jsonl` for all 8 types |
-| Conversion rate heuristic | DESIGN §9.3, CHOICES Decision 3 | 5‑min POS window; may differ from hidden labels |
+| Cross-camera Re-ID | DESIGN §9.1 | Best-effort (`pipeline/reid.py`); `--no-reid` for per-track IDs |
+| `BILLING_QUEUE_ABANDON` | `events.jsonl` has **3** | Regen with `--no-pos-filter` |
+| Conversion rate | DESIGN §9.3 | 5‑min window; **one txn → one visitor** |
 | Part E dashboard | DESIGN §9.4 | `/dashboard` + Live replay |
 
 ## Pre-submit commands

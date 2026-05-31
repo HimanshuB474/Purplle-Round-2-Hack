@@ -81,9 +81,9 @@ CCTV clips (5 cams) ──► Detection pipeline (Phase 3) ──► events.json
 | CAM 5.mp4 | BILLING | `CAM_BILLING_01` |
 | CAM 4.mp4 | STAFF / back office | `CAM_STAFF_BACK_01` (excluded from customer metrics) |
 
-**Outputs:** `data/events.jsonl` — **302 events**, **7 of 8** event types (see §9.2). Timestamps use `clip_base_timestamp` aligned to POS window (`19:52` UTC); on-screen CCTV overlay reads `~20:10` (documented recorder skew in `store_layout.json`).
+**Outputs:** `data/events.jsonl` — **299 events**, **all 8** event types (3× `BILLING_QUEUE_ABANDON` in committed file; generated with `--no-pos-filter`). Timestamps use `clip_base_timestamp` at `19:52` UTC (overlay ~20:10 in layout metadata).
 
-**Visitor IDs:** `VIS_####` from `pipeline/tracker.new_visitor_id()` — a **monotonic counter** (`visitor_seq`) shared across clips in run order. Each new ByteTrack ID gets a new `VIS_####`. This is **not** cross-camera Re-ID (§9.1).
+**Visitor IDs:** `VIS_####` via ByteTrack + `pipeline/reid.py` online registry (ENTRY cam first, 120s + HSV). Post-pass merge is **off** by default (`PIPELINE_REID_POST=0`) to avoid over-merging.
 
 ## 5. Event Stream & Schema
 
@@ -107,7 +107,7 @@ Design choices:
 
 **Computation:** **Compute-on-read** for metrics, funnel, heatmap, and anomalies for a given `store_id` + `?date=YYYY-MM-DD`. No hardcoded visitor counts—outputs change when different events are ingested.
 
-**POS correlation (`app/sessions.py` + `app/pos.py`):** Load `pos_transactions.csv`; for each transaction at time `T`, mark non-staff sessions with a billing-zone event in `[T−5min, T]` as `converted`. `unique_visitors` = distinct `visitor_id` with `ENTRY` (staff entries excluded). `abandonment_rate` = sessions with `BILLING_QUEUE_ABANDON` ÷ sessions that reached billing.
+**POS correlation (`app/sessions.py` + `app/pos.py`):** For each POS row at time `T`, assign conversion to **at most one** non-staff session—the one whose latest billing event in `[T−5min, T]` is closest to `T`. `unique_visitors` = distinct `visitor_id` with `ENTRY` (staff excluded). `abandonment_rate` = sessions with `BILLING_QUEUE_ABANDON` ÷ sessions that reached billing.
 
 **Funnel:** Four stages—`ENTRY` → `ZONE_VISIT` → `BILLING_QUEUE` → `PURCHASE`. ENTRY counts **unique visitors**; later stages count visitors (subset of entrants) so REENTRY does not double ENTRY and counts stay monotonic. Implemented in `funnel_counts()`.
 
@@ -121,7 +121,7 @@ Design choices:
 
 **Health (`GET /health`):** Returns `version`, per-store `last_event_at`, `lag_seconds`, `feed_status`. `STALE_FEED` if last event &gt; 10 minutes ago; HTTP 503 if DB unavailable. Root `GET /` lists endpoint URLs for browser sanity.
 
-**Verification scripts:** `scripts/validate_part_ab.py`, `scripts/validate_part_bc.py`, `scripts/verify_docker.py`, `pytest` (40 tests, high `app/` coverage).
+**Verification scripts:** `scripts/validate_part_ab.py`, `scripts/validate_part_bc.py`, `scripts/verify_docker.py`, `pytest` (46 tests).
 
 ## 8. AI-Assisted Decisions
 
@@ -147,33 +147,29 @@ Design choices:
 
 These are **intentional v1 trade-offs**, documented for scoring transparency. They do not block the acceptance gate when `sample_events.jsonl` + committed `events.jsonl` + Docker API are used as intended.
 
-### 9.1 No cross-camera Re-ID
+### 9.1 Cross-camera Re-ID (best-effort)
 
-| What we do | What we do **not** do |
-|------------|------------------------|
-| ByteTrack `track_id` per clip; new tracks → new `VIS_####` via shared `visitor_seq` in `pipeline/detect.py` | Embedding / appearance Re-ID to merge the same person across `CAM_ENTRY_01` → `CAM_FLOOR_*` |
-| `ENTRY` on first customer detection for that track on the entry camera | Guarantee one `visitor_id` per physical shopper for the whole store visit |
+| Layer | Implementation |
+|-------|----------------|
+| **Online** | `pipeline/reid.py` — `CrossCameraRegistry` matches new floor tracks to entry-cam visitors within `REID_TIME_GAP_SEC` (120s) using HSV histogram correlation when `PIPELINE_REID_APPEARANCE=1` |
+| **Post-pass** | Optional (`PIPELINE_REID_POST=1`) — unambiguous single-entry matches only |
+| **Disable** | `python -m pipeline.detect --no-reid` |
 
-**Impact:** Funnel and `unique_visitors` count **track identities**, not ground-truth humans. A shopper seen on CAM 3 (entry) and later on CAM 1 may appear as two visitors unless tracks are manually merged.
+**Limitation:** Best-effort on short clips; not ground-truth Re-ID. Committed run: ~71 customer `visitor_id`s after online merge.
 
-**Code:** `pipeline/tracker.py` (`new_visitor_id`), `pipeline/detect.py` (`visitor_seq` passed across clips). **Next step:** OSNet / CLIP Re-ID graph across cameras; document failure cases in follow-up video.
+### 9.2 `BILLING_QUEUE_ABANDON`
 
-### 9.2 `BILLING_QUEUE_ABANDON` absent from `events.jsonl`
+| Source | Count |
+|--------|-------|
+| Committed `events.jsonl` | **3** (regen with `--no-pos-filter`) |
+| Default pipeline + softer filter | May drop abandons correlated with POS |
+| `sample_events.jsonl` | 1 (CI) |
 
-| File | Events | `BILLING_QUEUE_ABANDON` |
-|------|--------|-------------------------|
-| `data/events.jsonl` (pipeline output, committed) | 302 | **0** — removed or never emitted after POS filter |
-| `data/sample_events.jsonl` (CI / schema demo) | 24 | **1** — all **8** types present |
+Emit logic: billing `ZONE_EXIT` after `BILLING_QUEUE_JOIN` in `pipeline/detect.py`. Filter: `pipeline/pos_filter.py`.
 
-**Why:** `pipeline/pos_filter.filter_false_billing_abandons()` drops `BILLING_QUEUE_ABANDON` when the visitor had billing-zone activity in the **5-minute window before** a POS transaction (`app/pos.conversion_window_start`). On Brigade 2026-04-10, correlated abandons were treated as false positives (converted shoppers leaving the queue).
+### 9.3 Conversion rate (heuristic, one txn → one visitor)
 
-**API impact:** `abandonment_rate` from pipeline-only ingest may be **0**; queue-spike anomalies still use `BILLING_QUEUE_JOIN` + `metadata.queue_depth`. Validators use `sample_events.jsonl` where abandon coverage is required (`tests/test_pipeline.py`, `validate_part_ab.py`).
-
-**Code:** `pipeline/pos_filter.py`, `app/sessions.abandonment_rate()`.
-
-### 9.3 Conversion rate is a heuristic (not ground truth)
-
-**Definition (implemented):** `converted_visitors / unique_visitors` where conversion = non-staff session with billing-zone evidence in `[T−5min, T]` for some POS row on that date (`app/sessions.apply_pos_conversions()` + `app/pos.py`).
+**Definition:** `converted_visitors / unique_visitors` where each POS transaction converts **at most one** visitor — the session whose last billing event in `[T−5min, T]` is closest to `T` (`app/sessions.apply_pos_conversions()`).
 
 **Caveats:**
 
