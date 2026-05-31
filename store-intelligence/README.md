@@ -5,7 +5,8 @@ Purplle Tech Challenge 2026 — Round 2. Brigade Bangalore (`ST1008` / `STORE_BL
 ## Quick Start (5 commands)
 
 ```bash
-git clone <repo> && cd store-intelligence
+git clone git@github.com:HimanshuB474/Purplle-Round-2-Hack.git
+cd Purplle-Round-2-Hack/store-intelligence
 docker compose up -d --build
 python -m pipeline.detect          # host — needs CCTV clips + pip install -r requirements.txt
 python scripts/ingest_events.py    # POST events.jsonl → API
@@ -50,11 +51,11 @@ python scripts/verify_events.py
 | Design (submit) | [docs/DESIGN.md](docs/DESIGN.md) |
 | Choices (submit) | [docs/CHOICES.md](docs/CHOICES.md) |
 
-## Raw assets (repo root)
+## Data in repo
 
-- `../CCTV Footage/CAM 1.mp4` – `CAM 5.mp4`
-- `../Brigade_Bangalore_10_April_26 (1)bc6219c.csv`
-- `../Brigade Road - Store layoutc5f5d56.xlsx`
+Committed under `data/`: `events.jsonl`, `sample_events.jsonl`, `pos_transactions.csv`, `store_layout.json`, layout images.
+
+**Local only (not in git):** `../CCTV Footage/*.mp4` for re-running `python -m pipeline.detect`.
 
 ## Status
 

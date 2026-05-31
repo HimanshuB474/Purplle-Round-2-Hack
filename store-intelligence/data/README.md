@@ -18,7 +18,7 @@
 
 
 
-Raw assets at repo root (not copied): `../CCTV Footage/`, `../Brigade_Bangalore_*.csv`.
+**Local only:** `../CCTV Footage/` for pipeline re-runs (not in git).
 
 
 

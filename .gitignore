@@ -52,8 +52,11 @@ CCTV Footage/
 *.mov
 *.mkv
 
-# Optional: uncomment if you do not want problem PDFs in git
-# *.pdf
+# Challenge reference materials (local only; use committed data/ in store-intelligence)
+Brigade_Bangalore_*.csv
+Brigade Road - Store layout*.xlsx
+Assessment*Framework*.pdf
+Purplle Tech Challenge*.pdf
 
 # OS / misc
 *.log

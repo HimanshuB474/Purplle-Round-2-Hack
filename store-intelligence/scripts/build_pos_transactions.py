@@ -3,9 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 
-ROOT = Path(r"d:\purple hack")
-SRC = ROOT / "Brigade_Bangalore_10_April_26 (1)bc6219c.csv"
-OUT = ROOT / "store-intelligence" / "data" / "pos_transactions.csv"
+SI_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = SI_ROOT.parent
+SRC = REPO_ROOT / "Brigade_Bangalore_10_April_26 (1)bc6219c.csv"
+OUT = SI_ROOT / "data" / "pos_transactions.csv"
 
 df = pd.read_csv(SRC)
 

@@ -52,7 +52,7 @@ End-to-end **Store Intelligence** system: CCTV → detection → events → API 
 
 Implementation goes in [`store-intelligence/`](./store-intelligence/README.md).
 
-Raw data assets remain at repo root (gitignored if large): `CCTV Footage/`, `Brigade_Bangalore_*.csv`, layout `.xlsx`, PDFs. See [store-intelligence/README.md](./store-intelligence/README.md).
+Large/local-only assets (gitignored): `CCTV Footage/` at repo root. Challenge PDFs, Brigade CSV/XLSX are **not** in git — derived artifacts live under `store-intelligence/data/`. See [store-intelligence/README.md](./store-intelligence/README.md).
 
 One-off dev scripts (layout extraction, context split): [`store-intelligence/scripts/dev/`](./store-intelligence/scripts/dev/).
 
