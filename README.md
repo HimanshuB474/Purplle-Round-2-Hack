@@ -55,8 +55,7 @@ python -m pipeline.detect --root . --no-pos-filter   # keep every abandon (commi
 | Choices | [`store-intelligence/docs/CHOICES.md`](./store-intelligence/docs/CHOICES.md) |
 | Pre-submit | [`store-intelligence/docs/PRE-PHASE3-CHECKLIST.md`](./store-intelligence/docs/PRE-PHASE3-CHECKLIST.md) |
 
-## Honest limits (for reviewers)
+## Limits
 
-- Re-ID is **best-effort**, not ground-truth identity across cameras.
 - Conversion follows **documented rules** (time + billing zone); may differ from hidden eval labels.
 - Details: [DESIGN.md §9](https://github.com/HimanshuB474/Purplle-Round-2-Hack/blob/main/store-intelligence/docs/DESIGN.md#9-known-gaps--reviewer-faq).
