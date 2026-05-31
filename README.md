@@ -1,6 +1,6 @@
 # Purplle Tech Challenge 2026 — Round 2
 
-**Store Intelligence** for Brigade Bangalore (`ST1008` / `STORE_BLR_002`): CCTV → detection pipeline → events → FastAPI analytics.
+**Store Intelligence**: CCTV → detection pipeline → events → FastAPI analytics.
 
 Submission code: **[`store-intelligence/`](./store-intelligence/)**.
 
