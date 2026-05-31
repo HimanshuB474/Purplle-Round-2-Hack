@@ -2,7 +2,7 @@
 
 Purplle Tech Challenge 2026 — Round 2. Brigade Bangalore (`ST1008` / `STORE_BLR_002`).
 
-## Quick start (reviewers)
+## Quick Start
 
 ```bash
 git clone git@github.com:HimanshuB474/Purplle-Round-2-Hack.git
@@ -16,6 +16,20 @@ curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 **Live dashboard:** http://localhost:8000/dashboard — **Live replay** ingests `data/events.jsonl` in batches so metrics update on screen.
 
 **Verify:** `python scripts/verify_docker.py` · `pytest` (46 tests) · `python scripts/validate_part_bc.py`
+
+### Verified output (clean Docker run, 2026-05-31)
+
+After `docker compose up -d --build` and `python scripts/ingest_events.py` (299 events):
+
+| Metric | Value |
+|--------|-------|
+| `unique_visitors` | **71** |
+| `converted_visitors` | **1** |
+| `conversion_rate` | **1.41%** (0.0141) |
+| `abandonment_rate` | **42.86%** |
+| Funnel | ENTRY 71 → ZONE_VISIT 41 → BILLING_QUEUE 7 → PURCHASE 1 |
+
+**Dashboard:** http://localhost:8000/dashboard — **Live replay** resets DB and streams the same 299 events; metrics climb in real time.
 
 ## Committed pipeline output
 

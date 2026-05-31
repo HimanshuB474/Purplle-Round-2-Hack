@@ -7,7 +7,7 @@
 
 | # | Requirement | Status | How to verify |
 |---|-------------|--------|----------------|
-| 1 | `docker compose up` without manual steps | ✅ | `cd store-intelligence && docker compose up -d --build` |
+| 1 | `docker compose up` without manual steps | ✅ | Verified 2026-05-31: 71 visitors, 1.41% conversion after ingest |
 | 2 | `/metrics` returns valid JSON | ✅ | `curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"` |
 | 3 | Detection pipeline → structured events | ✅ | Committed `data/events.jsonl` (302 events); regen: `python -m pipeline.detect` |
 | 4 | `DESIGN.md` + `CHOICES.md` (>250 words, AI decisions) | ✅ | `docs/DESIGN.md` §8, `docs/CHOICES.md` ×3 |

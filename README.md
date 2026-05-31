@@ -4,7 +4,7 @@
 
 Submission code: **[`store-intelligence/`](./store-intelligence/)**.
 
-## Quick start (reviewers)
+## Quick Start
 
 ```bash
 git clone git@github.com:HimanshuB474/Purplle-Round-2-Hack.git
@@ -19,6 +19,8 @@ curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 **Live dashboard (Part E):** http://localhost:8000/dashboard → **Live replay** streams `data/events.jsonl` and updates metrics in real time.
 
 **Verify:** `python scripts/verify_docker.py` · `python scripts/validate_part_bc.py` · `pytest` (46 tests)
+
+**Verified metrics** (ingest `data/events.jsonl` after `docker compose up`): **71** visitors, **1.41%** conversion, funnel ENTRY 71 → PURCHASE 1. Details in [`store-intelligence/README.md`](./store-intelligence/README.md#verified-output-clean-docker-run-2026-05-31).
 
 ## What is committed
 

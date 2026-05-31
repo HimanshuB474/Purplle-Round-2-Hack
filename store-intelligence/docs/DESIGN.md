@@ -177,7 +177,9 @@ Emit logic: billing `ZONE_EXIT` after `BILLING_QUEUE_JOIN` in `pipeline/detect.p
 - Clip timestamps aligned to **19:52 UTC** base; CCTV on-screen clock ~**20:10** (metadata in `store_layout.json`).
 - Billing camera coverage and queue polygons affect whether “billing presence” is detected.
 
-**Impact:** Reported conversion (~10% after full ingest in dev) is **honest to our rules**, not a claim of match to Purplle’s hidden evaluation labels.
+**Verified (clean Docker, 2026-05-31):** Ingest 299 pipeline events → `unique_visitors=71`, `converted_visitors=1`, `conversion_rate=0.0141`, `abandonment_rate=0.4286`; funnel ENTRY 71 → ZONE_VISIT 41 → BILLING_QUEUE 7 → PURCHASE 1.
+
+**Impact:** Reported conversion is **honest to our rules** (5‑min window + one txn → one visitor), not a claim of match to Purplle’s hidden evaluation labels.
 
 ### 9.4 Part E live dashboard (implemented)
 
