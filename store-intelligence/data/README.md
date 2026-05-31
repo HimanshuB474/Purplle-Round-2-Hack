@@ -10,11 +10,11 @@
 
 | `store_layout.json` | Done | Verified cameras + zone polygons — [03b-store-layout](../docs/context/03b-store-layout-brigade-road.md) |
 
-| `sample_events.jsonl` | Done | 24 sample events, all 8 types — [02-event-schema.md](../docs/context/02-event-schema.md) |
+| `sample_events.jsonl` | Done | 24 events — **all 8 types** (includes `BILLING_QUEUE_ABANDON`) for CI/schema — [02-event-schema.md](../docs/context/02-event-schema.md) |
 
 | `layout/cctv_annotated/` | Done | Zone overlays on sample frames |
 
-| `events.jsonl` | Generated | ~90 events from CCTV via `python -m pipeline.detect` |
+| `events.jsonl` | Committed | **302** events from pipeline (`python -m pipeline.detect`); **7/8** types — no `BILLING_QUEUE_ABANDON` (see [DESIGN.md §9.2](../docs/DESIGN.md#92-billing_queue_abandon-absent-from-eventsjsonl)) |
 
 
 

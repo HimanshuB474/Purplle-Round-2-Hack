@@ -1,54 +1,59 @@
-# Pre–Phase 3 Checklist (vs Evaluation Framework PDF)
+# Submission readiness checklist
 
-Source: `Assessment  Evaluation Frameworkb24a398.pdf` + Problem Statement PDF.  
-Last reviewed: after Phase 2.
+> **Superseded title:** was “Pre–Phase 3”; all phases complete as of May 2026.  
+> Use this before submitting the GitHub link. Detailed gap analysis: [DESIGN.md §9](./DESIGN.md#9-known-gaps--reviewer-faq).
 
-## Acceptance gate (mandatory before scoring)
+## Acceptance gate
 
-| # | Framework requirement | Status | Notes |
-|---|----------------------|--------|-------|
-| 1 | `docker compose up` without manual steps | ⚠️ Verify | Compose file ready; confirm on a machine with Docker |
-| 2 | `/metrics` returns valid response | ✅ | `GET /stores/ST1008/metrics` + `STORE_BLR_002` alias |
-| 3 | **Detection pipeline produces structured events** | ✅ | `data/events.jsonl` from `python -m pipeline.detect` |
-| 4 | `DESIGN.md` + `CHOICES.md` non-trivial (>250 words) | ✅ | Updated post–Phase 2 |
-| 5 | System stable on basic execution | ✅ | 22+ pytest tests; no crash on empty store |
+| # | Requirement | Status | How to verify |
+|---|-------------|--------|----------------|
+| 1 | `docker compose up` without manual steps | ✅ | `cd store-intelligence && docker compose up -d --build` |
+| 2 | `/metrics` returns valid JSON | ✅ | `curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"` |
+| 3 | Detection pipeline → structured events | ✅ | Committed `data/events.jsonl` (302 events); regen: `python -m pipeline.detect` |
+| 4 | `DESIGN.md` + `CHOICES.md` (>250 words, AI decisions) | ✅ | `docs/DESIGN.md` §8, `docs/CHOICES.md` ×3 |
+| 5 | Stable execution | ✅ | `pytest` — 40 tests |
 
-**Blocker:** Item 3 fails until Phase 3 emits real events from CCTV clips.
+## Scoring areas (100 + 10 bonus)
 
-## Scoring areas (100 marks)
+| Area | Pts | Status | Notes |
+|------|-----|--------|-------|
+| A — Detection | 30 | ✅ submitted | Pipeline + committed `events.jsonl`; see [known gaps](./DESIGN.md#9-known-gaps--reviewer-faq) for Re-ID / abandon |
+| B — API | 35 | ✅ | Six endpoints; `validate_part_bc.py` |
+| C — Production | 20 | ✅ | Docker, logging, 503 on DB down (`test_degradation.py`) |
+| D — Thinking | 15 | ✅ | DESIGN + CHOICES |
+| E — Dashboard | +10 | ❌ not built | `dashboard/live.py` stub only — optional bonus |
 
-| Area | Pts | Ready? | Gap |
-|------|-----|--------|-----|
-| **A — Detection** | 30 | ⚠️ | Pipeline runs; tune entry counts vs ground truth; CAM4 often 0 detections |
-| **B — API** | 35 | ✅ mostly | Held-out event set at scoring time; funnel/anomalies implemented |
-| **C — Production** | 20 | ⚠️ | Docker untested here; logging OK; add DB-down test; `test_pipeline.py` empty |
-| **D — Thinking** | 15 | ✅ | DESIGN §7 + CHOICES (3 decisions) filled |
-| **E — Dashboard** | +10 | ❌ | Optional `dashboard/live.py` stub |
-
-## Integrity caps (score max 50 if violated)
+## Integrity (score cap at 50 if violated)
 
 | Check | Status |
 |-------|--------|
-| No hardcoded metrics | ✅ Compute-on-read from SQLite |
-| Outputs vary with ingest | ✅ Verified in tests |
-| Real computation | ✅ POS + event correlation in `app/sessions.py` |
+| No hardcoded visitor counts | ✅ `app/metrics.py` compute-on-read |
+| Metrics change after ingest | ✅ `tests/test_metrics.py` |
+| Real POS correlation | ✅ `app/sessions.apply_pos_conversions()` |
 
-## Smaller fixes applied before Phase 3
+## Known gaps (documented — not blockers)
 
-- `assertions.py` — challenge example assertions (pytest)
-- README — 5-command acceptance flow + pipeline step
-- 503 body — `{ "status": "UNAVAILABLE", "reason": "..." }` on health/ingest when DB down
-- This checklist document
+| Gap | Where documented | Reviewer action |
+|-----|------------------|-----------------|
+| No cross-camera Re-ID | DESIGN §9.1, CHOICES §Limitations | Expect separate `VIS_####` per track/clip |
+| No `BILLING_QUEUE_ABANDON` in `events.jsonl` | DESIGN §9.2, `data/README.md` | Use `sample_events.jsonl` for all 8 types |
+| Conversion rate heuristic | DESIGN §9.3, CHOICES Decision 3 | 5‑min POS window; may differ from hidden labels |
+| Part E dashboard | DESIGN §9.4 | API + Swagger sufficient for base score |
 
-## Still recommended before / during Phase 3
+## Pre-submit commands
 
-1. Implement `pipeline/detect.py` + wire `run.sh` → `data/events.jsonl`
-2. Fill `tests/test_pipeline.py` PROMPT block + schema/unique-id tests
-3. Add `test_ingest_db_unavailable_503` (mock DB failure)
-4. Mount or document `../CCTV Footage` for Docker pipeline runs
-5. Optional: live dashboard for +10 bonus
-6. Re-run ingest of **pipeline** events (not only `sample_events.jsonl`) so conversion rate aligns with POS windows
+```bash
+cd store-intelligence
+docker compose down -v && docker compose up -d --build
+python scripts/verify_docker.py
+python scripts/ingest_events.py
+python scripts/validate_part_ab.py
+python scripts/validate_part_bc.py
+pytest -q
+```
 
-## Reviewer time box (from framework)
+## Admin
 
-Reviewers spend ~2 min running system, ~2 min inspecting events, ~3 min API outputs — ensure `events.jsonl` is easy to find and schema-valid after Phase 3.
+- [ ] GitHub repo link submitted
+- [ ] Reviewer GitHub handle invited (private repo)
+- [ ] Root [README.md](../../README.md) quick start works from fresh clone

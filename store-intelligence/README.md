@@ -57,6 +57,10 @@ Committed under `data/`: `events.jsonl`, `sample_events.jsonl`, `pos_transaction
 
 **Local only (not in git):** `../CCTV Footage/*.mp4` for re-running `python -m pipeline.detect`.
 
+## Known gaps (reviewers)
+
+Documented in [`docs/DESIGN.md`](docs/DESIGN.md#9-known-gaps--reviewer-faq) and [`docs/CHOICES.md`](docs/CHOICES.md#known-limitations-submission-transparency): no cross-camera Re-ID; `BILLING_QUEUE_ABANDON` only in `sample_events.jsonl`; conversion heuristic; no live dashboard.
+
 ## Status
 
-- **Phase 1–3:** Complete — run `python -m pipeline.detect` then `python scripts/ingest_events.py`
+- **Phase 1–3:** Complete — `data/events.jsonl` committed; regen with `python -m pipeline.detect` + `scripts/ingest_events.py`

@@ -23,7 +23,7 @@ Git root is the **parent workspace** (`purple hack/`); the **submission tree** i
 | `tests/test_pipeline.py`, `test_metrics.py`, `test_anomalies.py` | Same + `test_ingest`, `test_funnel`, `test_health`, `test_degradation`, `test_assertions`, `conftest.py` | Broader API + degradation coverage |
 | `docs/DESIGN.md`, `CHOICES.md` | Same + `docs/context/` (split from `CONTEXT.md`), `PRE-PHASE3-CHECKLIST.md` | Context index for development; not required for scoring |
 | — | `scripts/` (ingest, validate, verify), `scripts/dev/` (layout one-offs), `assertions.py`, `dashboard/live.py` (stub), `requirements-api.txt`, `Dockerfile` | Ops/validation; Part E dashboard not implemented |
-| — | Repo root: `CONTEXT.md`, Brigade CSV/XLSX/PDFs, `CCTV Footage/` | Footage **gitignored** (~650 MB); paths in `data/store_layout.json` point to `../CCTV Footage/` |
+| — | Repo root: `README.md`, `CONTEXT.md`; local CCTV + challenge PDFs/CSV | Footage and reference materials **gitignored**; committed `data/*` suffices for reviewers |
 
 **Intentionally not moved:** CCTV clips and challenge PDFs stay at repo root for local pipeline runs; reviewers use committed `data/events.jsonl` + Docker API without re-running CV.
 
@@ -81,9 +81,9 @@ CCTV clips (5 cams) ──► Detection pipeline (Phase 3) ──► events.json
 | CAM 5.mp4 | BILLING | `CAM_BILLING_01` |
 | CAM 4.mp4 | STAFF / back office | `CAM_STAFF_BACK_01` (excluded from customer metrics) |
 
-**Outputs:** `data/events.jsonl` (~280+ events, all 8 types). Timestamps use `clip_base_timestamp` aligned to POS window (`19:52` UTC); on-screen CCTV overlay reads `~20:10` (documented recorder skew in `store_layout.json`).
+**Outputs:** `data/events.jsonl` — **302 events**, **7 of 8** event types (see §9.2). Timestamps use `clip_base_timestamp` aligned to POS window (`19:52` UTC); on-screen CCTV overlay reads `~20:10` (documented recorder skew in `store_layout.json`).
 
-**Cross-camera:** `visitor_id` assigned per clip (`VIS_{cam}_{track_id}_{suffix}`); no embedding Re-ID across cameras in v1.
+**Visitor IDs:** `VIS_####` from `pipeline/tracker.new_visitor_id()` — a **monotonic counter** (`visitor_seq`) shared across clips in run order. Each new ByteTrack ID gets a new `VIS_####`. This is **not** cross-camera Re-ID (§9.1).
 
 ## 5. Event Stream & Schema
 
@@ -121,7 +121,7 @@ Design choices:
 
 **Health (`GET /health`):** Returns `version`, per-store `last_event_at`, `lag_seconds`, `feed_status`. `STALE_FEED` if last event &gt; 10 minutes ago; HTTP 503 if DB unavailable. Root `GET /` lists endpoint URLs for browser sanity.
 
-**Verification scripts:** `scripts/validate_project.py`, `scripts/verify_phase2.py`, `pytest` (22 tests, ~90% `app/` coverage).
+**Verification scripts:** `scripts/validate_part_ab.py`, `scripts/validate_part_bc.py`, `scripts/verify_docker.py`, `pytest` (40 tests, high `app/` coverage).
 
 ## 8. AI-Assisted Decisions
 
@@ -143,20 +143,66 @@ Design choices:
 - **What I accepted/rejected:** **Accepted** 200 + body tallies; malformed events never fail the whole batch.
 - **Why:** Simpler for `curl` and TestClient; pipeline can retry only failed indices. Documented in CHOICES.md Decision 3.
 
-## 9. Known Limitations & Future Work
+## 9. Known Gaps & Reviewer FAQ
 
-| Limitation | Mitigation / next step |
+These are **intentional v1 trade-offs**, documented for scoring transparency. They do not block the acceptance gate when `sample_events.jsonl` + committed `events.jsonl` + Docker API are used as intended.
+
+### 9.1 No cross-camera Re-ID
+
+| What we do | What we do **not** do |
 |------------|------------------------|
-| Cross-camera Re-ID | Global `VIS_####` IDs assigned in clip order across cameras; ENTRY on first customer detection per track |
-| Timestamp base | `19:52 UTC` in layout for POS overlap; overlay `20:10` preserved as metadata |
-| Single store, single day in POS | Snapshots table seeds 7-day baseline; more days as pipeline replays |
-| Sample events ≠ full clip coverage | Conversion rate 0 until real billing timestamps align with POS windows |
-| SQLite write throughput | First bottleneck at ~40 stores; would shard by `store_id` or move to PostgreSQL |
-| Re-ID across CAM 3 → CAM 1 | Planned ByteTrack + optional embedding; document failures in follow-up video |
-| `CAM_STAFF_BACK_01` | Events ingested but excluded in `customer_sessions()` |
+| ByteTrack `track_id` per clip; new tracks → new `VIS_####` via shared `visitor_seq` in `pipeline/detect.py` | Embedding / appearance Re-ID to merge the same person across `CAM_ENTRY_01` → `CAM_FLOOR_*` |
+| `ENTRY` on first customer detection for that track on the entry camera | Guarantee one `visitor_id` per physical shopper for the whole store visit |
 
-**Follow-up video notes:** Be ready to demo `apply_pos_conversions()`, `unique_visitors_with_entry()`, and show CHOICES.md camera correction with `data/layout/cctv_annotated/` frames.
+**Impact:** Funnel and `unique_visitors` count **track identities**, not ground-truth humans. A shopper seen on CAM 3 (entry) and later on CAM 1 may appear as two visitors unless tracks are manually merged.
+
+**Code:** `pipeline/tracker.py` (`new_visitor_id`), `pipeline/detect.py` (`visitor_seq` passed across clips). **Next step:** OSNet / CLIP Re-ID graph across cameras; document failure cases in follow-up video.
+
+### 9.2 `BILLING_QUEUE_ABANDON` absent from `events.jsonl`
+
+| File | Events | `BILLING_QUEUE_ABANDON` |
+|------|--------|-------------------------|
+| `data/events.jsonl` (pipeline output, committed) | 302 | **0** — removed or never emitted after POS filter |
+| `data/sample_events.jsonl` (CI / schema demo) | 24 | **1** — all **8** types present |
+
+**Why:** `pipeline/pos_filter.filter_false_billing_abandons()` drops `BILLING_QUEUE_ABANDON` when the visitor had billing-zone activity in the **5-minute window before** a POS transaction (`app/pos.conversion_window_start`). On Brigade 2026-04-10, correlated abandons were treated as false positives (converted shoppers leaving the queue).
+
+**API impact:** `abandonment_rate` from pipeline-only ingest may be **0**; queue-spike anomalies still use `BILLING_QUEUE_JOIN` + `metadata.queue_depth`. Validators use `sample_events.jsonl` where abandon coverage is required (`tests/test_pipeline.py`, `validate_part_ab.py`).
+
+**Code:** `pipeline/pos_filter.py`, `app/sessions.abandonment_rate()`.
+
+### 9.3 Conversion rate is a heuristic (not ground truth)
+
+**Definition (implemented):** `converted_visitors / unique_visitors` where conversion = non-staff session with billing-zone evidence in `[T−5min, T]` for some POS row on that date (`app/sessions.apply_pos_conversions()` + `app/pos.py`).
+
+**Caveats:**
+
+- POS has **no `customer_id`** — time + zone proxy only; multiple visitors near one txn can correlate incorrectly.
+- Clip timestamps aligned to **19:52 UTC** base; CCTV on-screen clock ~**20:10** (metadata in `store_layout.json`).
+- Billing camera coverage and queue polygons affect whether “billing presence” is detected.
+
+**Impact:** Reported conversion (~10% after full ingest in dev) is **honest to our rules**, not a claim of match to Purplle’s hidden evaluation labels.
+
+### 9.4 Part E live dashboard not implemented (+10 bonus)
+
+`dashboard/live.py` is a **placeholder** only. Reviewers should use:
+
+- Swagger UI: `http://localhost:8000/docs`
+- `GET /stores/ST1008/metrics|funnel|heatmap|anomalies`
+
+A streaming dashboard would poll ingest + `/metrics` or use SSE; out of scope for submitted v1.
+
+### 9.5 Other limitations (brief)
+
+| Topic | Note |
+|-------|------|
+| Timestamp base | `19:52 UTC` in layout for POS overlap; overlay `20:10` in metadata |
+| Single store / day in POS | 24 transactions; 7-day baseline seeded on metrics read for `CONVERSION_DROP` |
+| SQLite scale | First bottleneck ~40 stores → PostgreSQL or shard by `store_id` |
+| `CAM_STAFF_BACK_01` | Staff events ingested; excluded in `customer_sessions()` |
+
+**Follow-up video:** Demo `apply_pos_conversions()`, `unique_visitors_with_entry()`, `funnel_counts()`, CHOICES Decision 1 (camera map), and §9.1–9.2 above with real `event_type` counts.
 
 ---
 
-*Last updated: Phase 3 complete — pipeline emits `data/events.jsonl` from CCTV.*
+*Last updated: submission — gaps §9.1–9.4 explicit for reviewers.*

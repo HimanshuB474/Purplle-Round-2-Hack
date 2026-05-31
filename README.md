@@ -61,6 +61,17 @@ Purplle-Round-2-Hack/
 └── store-intelligence/
 ```
 
+## Known gaps (documented for reviewers)
+
+| Topic | Summary |
+|-------|---------|
+| Cross-camera Re-ID | Not implemented — `VIS_####` per track, not per person across cameras |
+| `BILLING_QUEUE_ABANDON` | **0** in committed `events.jsonl`; **1** in `sample_events.jsonl` (all 8 types) |
+| Conversion rate | 5‑min POS window + billing zone — heuristic, not ground-truth labels |
+| Live dashboard | Not built (`dashboard/live.py` stub) — +10 bonus only |
+
+Full detail: [`store-intelligence/docs/DESIGN.md`](./store-intelligence/docs/DESIGN.md#9-known-gaps--reviewer-faq) and [`CHOICES.md`](./store-intelligence/docs/CHOICES.md#known-limitations-submission-transparency).
+
 ## Status
 
-Phases 1–3 complete: pipeline, ingest, metrics/funnel/heatmap/anomalies, Docker, tests. See [`store-intelligence/README.md`](./store-intelligence/README.md) for details.
+Phases 1–3 complete: pipeline, ingest, metrics/funnel/heatmap/anomalies, Docker, 40 tests. Pre-submit checklist: [`store-intelligence/docs/PRE-PHASE3-CHECKLIST.md`](./store-intelligence/docs/PRE-PHASE3-CHECKLIST.md).

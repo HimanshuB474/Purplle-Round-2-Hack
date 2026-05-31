@@ -25,11 +25,11 @@ Use **YOLOv8n + ByteTrack** for the baseline pipeline, polygons from `store_layo
 
 ### What I Chose
 
-**YOLOv8n + ByteTrack**, **0.33 s sampling**, zone debounce, track-loss EXIT/REENTRY, global `VIS_####` IDs, timestamp base **19:52 UTC** (POS-aligned; overlay `20:10` in layout metadata).
+**YOLOv8n + ByteTrack**, **0.5 s sampling** (`PIPELINE_SAMPLE_SEC`), zone debounce, track-loss EXIT/REENTRY, sequential `VIS_####` IDs (**not** cross-camera Re-ID — see [Limitations](#known-limitations-submission-transparency)), timestamp base **19:52 UTC** (POS-aligned; overlay `20:10` in layout metadata).
 
 ### Why
 
-~302 events in **~11 min** on CPU. All **8 event types** in `sample_events.jsonl`; live clip may omit `BILLING_QUEUE_ABANDON` after POS correlation filter. Staff via **HOG fallback** on CAM 4 (`32` staff-tagged events). Events emit `store_id: STORE_BLR_002`. Dwell threshold **30 s** per spec. **POS conversion ~10.7%** after ingest with honest billing-zone correlation.
+~302 events in **~11 min** on CPU. All **8 event types** in `sample_events.jsonl`; committed `events.jsonl` has **7 types** (no `BILLING_QUEUE_ABANDON` after `pipeline/pos_filter.py`). Staff via **HOG fallback** on CAM 4 (`32` staff-tagged events). Events emit `store_id: STORE_BLR_002`. Dwell threshold **30 s** per spec. **POS conversion ~10.7%** after ingest — heuristic per §Limitations below.
 
 ### If I Used a VLM
 
@@ -91,8 +91,35 @@ SQLite for storage; compute metrics on GET; return **207** for partial ingest su
 
 ### Why
 
-Meets “metrics change when events change” without a separate batch job. Tests use `tests/conftest.py` with a fresh SQLite file per test—no mocked math. For Brigade’s 24 POS rows and thousands of events per day, on-read is sufficient; first scale bottleneck at 40 stores would be **ingest write rate**, then read aggregation—documented in DESIGN.md §8. Rejected 207 because FastAPI TestClient and challenge examples expect JSON body tallies on 200; `tests/test_ingest.py` asserts partial success this way.
+Meets “metrics change when events change” without a separate batch job. Tests use `tests/conftest.py` with a fresh SQLite file per test—no mocked math. For Brigade’s 24 POS rows and thousands of events per day, on-read is sufficient; first scale bottleneck at 40 stores would be **ingest write rate**, then read aggregation—documented in DESIGN.md §9.5. Rejected 207 because FastAPI TestClient and challenge examples expect JSON body tallies on 200; `tests/test_ingest.py` asserts partial success this way.
 
 ---
 
-*Last updated: Phase 3 — staff HOG fallback, STORE_BLR_002 emit ID, 30 s dwell, POS abandon filter, structured ingest `event_count` logging.*
+## Known limitations (submission transparency)
+
+Aligned with [DESIGN.md §9](./DESIGN.md#9-known-gaps--reviewer-faq). Stated here so CHOICES alone answers “what did you knowingly not solve?”
+
+### L1 — No cross-camera Re-ID
+
+- **Choice:** One `visitor_id` per ByteTrack track; `visitor_seq` increments across clips in processing order (`VIS_0001`, `VIS_0002`, …).
+- **Rejected:** Appearance embeddings to link CAM 3 entry with CAM 1/2 floor tracks.
+- **Reviewer:** Do not expect a single `visitor_id` to follow one person across all five clips.
+
+### L2 — `BILLING_QUEUE_ABANDON` only in `sample_events.jsonl`
+
+- **Choice:** Post-pipeline `filter_false_billing_abandons()` removes abandons when POS correlation says the visitor converted within the 5‑min window.
+- **Result:** `data/events.jsonl` = 302 events, **0** abandons; `data/sample_events.jsonl` = all 8 types for schema/CI.
+- **Reviewer:** Validate abandon handling against **sample** file; use pipeline file for volume/realistic ingest.
+
+### L3 — Conversion rate is time–zone heuristic
+
+- **Choice:** Match POS timestamp to billing-zone events in `[T−5min, T]`; never join on customer name/phone from Brigade CSV.
+- **Caveat:** May disagree with hidden evaluation labels; we report metrics consistent with **our** documented rules in `app/sessions.py`.
+
+### L4 — Part E dashboard deferred
+
+- **Choice:** Ship API + Swagger; `dashboard/live.py` remains a stub (+10 bonus not attempted).
+
+---
+
+*Last updated: submission — limitations L1–L4 explicit for reviewers.*
