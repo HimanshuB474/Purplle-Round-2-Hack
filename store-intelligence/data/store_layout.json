@@ -1,0 +1,237 @@
+{
+  "stores": [
+    {
+      "store_id": "ST1008",
+      "event_store_id": "STORE_BLR_002",
+      "store_name": "Brigade_Bangalore",
+      "city": "Bangalore",
+      "layout_variant": "current",
+      "layout_reference": "data/layout/image1.png",
+      "layout_analysis": "docs/context/03b-store-layout-brigade-road.md",
+      "cctv_verified": "2026-05-31",
+      "open_hours": {
+        "open": "10:00",
+        "close": "22:00",
+        "timezone": "Asia/Kolkata"
+      },
+      "floor_plan_mm": {
+        "depth_centre": 3120,
+        "depth_billing_side": 4020,
+        "entrance_to_fragrance": 2594
+      },
+      "cameras": [
+        {
+          "camera_id": "CAM_ENTRY_01",
+          "source_file": "CAM 3.mp4",
+          "clip_path": "../CCTV Footage/CAM 3.mp4",
+          "role": "ENTRY",
+          "fps": 29.97,
+          "clip_base_timestamp": "2026-04-10T19:52:00Z",
+          "clip_overlay_display_time": "2026-04-10T20:10:00Z",
+          "timestamp_note": "Base aligned to POS correlation (txn 19:54); CCTV on-screen overlay ~20:10 is recorder display skew",
+          "verified_view": "Glass entrance doors (top), BACKLIT sunscreen display, yellow central gondola, wood floor",
+          "entry_line": [[320, 280], [1600, 280]],
+          "direction_inbound": "top_to_bottom",
+          "zones": [
+            {
+              "zone_id": "ENTRY",
+              "polygon": [[280, 80], [1640, 80], [1640, 320], [280, 320]],
+              "sku_zone": null
+            },
+            {
+              "zone_id": "FRAGRANCE",
+              "polygon": [[680, 420], [1180, 420], [1180, 780], [680, 780]],
+              "sku_zone": "FRAGRANCE_NAIL"
+            }
+          ]
+        },
+        {
+          "camera_id": "CAM_FLOOR_SKIN_01",
+          "source_file": "CAM 1.mp4",
+          "clip_path": "../CCTV Footage/CAM 1.mp4",
+          "role": "MAIN",
+          "fps": 29.97,
+          "clip_base_timestamp": "2026-04-10T19:52:00Z",
+          "clip_overlay_display_time": "2026-04-10T20:10:00Z",
+          "timestamp_note": "Base aligned to POS correlation (txn 19:54); CCTV on-screen overlay ~20:10 is recorder display skew",
+          "verified_view": "Top-wall skincare: Farmstay, TFS, Good Vibes, DermDoc, Minimalist, Aqualogica; fragrance island; makeup trial chair",
+          "zones": [
+            {
+              "zone_id": "SKIN",
+              "polygon": [[120, 60], [1780, 60], [1780, 520], [120, 520]],
+              "sku_zone": "SKIN_TOP_WALL"
+            },
+            {
+              "zone_id": "FRAGRANCE",
+              "polygon": [[820, 480], [1180, 480], [1180, 720], [820, 720]],
+              "sku_zone": "FRAGRANCE_NAIL"
+            },
+            {
+              "zone_id": "MAKEUP",
+              "polygon": [[1380, 380], [1880, 380], [1880, 900], [1380, 900]],
+              "sku_zone": "MAKEUP_TRIAL"
+            }
+          ]
+        },
+        {
+          "camera_id": "CAM_FLOOR_MAKEUP_01",
+          "source_file": "CAM 2.mp4",
+          "clip_path": "../CCTV Footage/CAM 2.mp4",
+          "role": "MAIN",
+          "fps": 29.97,
+          "clip_base_timestamp": "2026-04-10T19:52:00Z",
+          "clip_overlay_display_time": "2026-04-10T20:10:00Z",
+          "timestamp_note": "Base aligned to POS correlation (txn 19:54); CCTV on-screen overlay ~20:10 is recorder display skew",
+          "verified_view": "Bottom-wall makeup/hair: Alps Goodness, Swiss Beauty, Lakme, Faces Canada, Maybelline; vanity trial station left",
+          "zones": [
+            {
+              "zone_id": "HAIR",
+              "polygon": [[180, 40], [520, 40], [520, 480], [180, 480]],
+              "sku_zone": "ALPS_GOODNESS"
+            },
+            {
+              "zone_id": "MAKEUP",
+              "polygon": [[480, 40], [1780, 40], [1780, 520], [480, 520]],
+              "sku_zone": "MAKEUP_BOTTOM_WALL"
+            },
+            {
+              "zone_id": "MAKEUP",
+              "polygon": [[40, 360], [380, 360], [380, 920], [40, 920]],
+              "sku_zone": "MAKEUP_TRIAL"
+            },
+            {
+              "zone_id": "PERSONAL_CARE",
+              "polygon": [[40, 40], [200, 40], [200, 200], [40, 200]],
+              "sku_zone": "ACCESSORIES"
+            }
+          ]
+        },
+        {
+          "camera_id": "CAM_BILLING_01",
+          "source_file": "CAM 5.mp4",
+          "clip_path": "../CCTV Footage/CAM 5.mp4",
+          "role": "BILLING",
+          "fps": 25.0,
+          "clip_base_timestamp": "2026-04-10T19:52:00Z",
+          "clip_overlay_display_time": "2026-04-10T20:10:00Z",
+          "timestamp_note": "Base aligned to POS correlation (txn 19:54); CCTV on-screen overlay ~20:10 is recorder display skew",
+          "verified_view": "Cash counter with laptops/scanners; staff at billing; ACCESSORIES display; nearby shelves",
+          "zones": [
+            {
+              "zone_id": "BILLING",
+              "polygon": [[180, 260], [920, 260], [920, 720], [180, 720]],
+              "sku_zone": null
+            },
+            {
+              "zone_id": "BILLING",
+              "polygon": [[140, 680], [1000, 680], [1000, 1040], [140, 1040]],
+              "sku_zone": "QUEUE"
+            },
+            {
+              "zone_id": "PERSONAL_CARE",
+              "polygon": [[1480, 120], [1900, 120], [1900, 980], [1480, 980]],
+              "sku_zone": "ACCESSORIES"
+            },
+            {
+              "zone_id": "SKIN",
+              "polygon": [[40, 40], [480, 40], [480, 420], [40, 420]],
+              "sku_zone": "NEAR_BILLING_SHELVES"
+            }
+          ]
+        },
+        {
+          "camera_id": "CAM_STAFF_BACK_01",
+          "source_file": "CAM 4.mp4",
+          "clip_path": "../CCTV Footage/CAM 4.mp4",
+          "role": "STAFF",
+          "fps": 25.0,
+          "clip_base_timestamp": "2026-04-10T19:52:00Z",
+          "clip_overlay_display_time": "2026-04-10T20:10:00Z",
+          "timestamp_note": "Base aligned to POS correlation (txn 19:54); CCTV on-screen overlay ~20:10 is recorder display skew",
+          "verified_view": "Back-office/storage: inventory boxes, water dispenser, staff belongings — NOT customer retail floor",
+          "exclude_from_customer_metrics": true,
+          "zones": [
+            {
+              "zone_id": "STAFF_BACK",
+              "polygon": [[0, 0], [1920, 0], [1920, 1080], [0, 1080]],
+              "sku_zone": null
+            }
+          ]
+        }
+      ],
+      "zones": [
+        {
+          "zone_id": "ENTRY",
+          "label": "Entrance Threshold",
+          "dep_name": null,
+          "plan_location": "glass_doors_left",
+          "cameras": ["CAM_ENTRY_01"]
+        },
+        {
+          "zone_id": "SKIN",
+          "label": "Skincare Wall",
+          "dep_name": "skin",
+          "plan_location": "top_wall",
+          "cameras": ["CAM_FLOOR_SKIN_01", "CAM_BILLING_01"]
+        },
+        {
+          "zone_id": "MAKEUP",
+          "label": "Makeup Wall & Trial",
+          "dep_name": "makeup",
+          "plan_location": "bottom_wall_and_centre",
+          "cameras": ["CAM_FLOOR_SKIN_01", "CAM_FLOOR_MAKEUP_01"]
+        },
+        {
+          "zone_id": "HAIR",
+          "label": "Haircare",
+          "dep_name": "hair",
+          "plan_location": "bottom_wall_left",
+          "cameras": ["CAM_FLOOR_MAKEUP_01"]
+        },
+        {
+          "zone_id": "FRAGRANCE",
+          "label": "Fragrance & Nail",
+          "dep_name": "fragrance",
+          "plan_location": "centre_front",
+          "cameras": ["CAM_ENTRY_01", "CAM_FLOOR_SKIN_01"]
+        },
+        {
+          "zone_id": "PERSONAL_CARE",
+          "label": "Accessories & Personal Care",
+          "dep_name": "personal-care",
+          "plan_location": "accessories_bays",
+          "cameras": ["CAM_FLOOR_MAKEUP_01", "CAM_BILLING_01"]
+        },
+        {
+          "zone_id": "BATH_BODY",
+          "label": "Bath & Body",
+          "dep_name": "bath-and-body",
+          "plan_location": "beauty_essentials_bay",
+          "cameras": []
+        },
+        {
+          "zone_id": "BILLING",
+          "label": "Cash Counter & Queue",
+          "dep_name": null,
+          "plan_location": "right_wall",
+          "cameras": ["CAM_BILLING_01"]
+        },
+        {
+          "zone_id": "STAFF_BACK",
+          "label": "Staff Back Office",
+          "dep_name": null,
+          "plan_location": "storage_room",
+          "cameras": ["CAM_STAFF_BACK_01"],
+          "customer_zone": false
+        }
+      ],
+      "camera_role_summary": {
+        "CAM 1.mp4": "CAM_FLOOR_SKIN_01 — MAIN (skincare top wall)",
+        "CAM 2.mp4": "CAM_FLOOR_MAKEUP_01 — MAIN (makeup/hair bottom wall + vanity)",
+        "CAM 3.mp4": "CAM_ENTRY_01 — ENTRY (glass doors + backlit display)",
+        "CAM 4.mp4": "CAM_STAFF_BACK_01 — STAFF (storage/back office, exclude from funnel)",
+        "CAM 5.mp4": "CAM_BILLING_01 — BILLING (cash counter + queue)"
+      }
+    }
+  ]
+}

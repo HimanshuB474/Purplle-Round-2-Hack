@@ -1,0 +1,14 @@
+__pycache__
+*.pyc
+.pytest_cache
+.git
+data/*.db
+data/phase2_verify.db
+data/validation_*.db
+pipeline/
+tests/
+docs/
+dashboard/
+scripts/
+*.md
+CCTV Footage/

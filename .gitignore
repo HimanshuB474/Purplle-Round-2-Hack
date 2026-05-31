@@ -1,0 +1,61 @@
+# --- Monorepo: Purplle hack workspace (git root) ---
+# Submission code lives in store-intelligence/ (see CONTEXT.md).
+# See store-intelligence/.gitignore for project-specific generated artifacts.
+
+# IDE / editor
+.cursor/
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+Desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Databases & local API state (regenerated via ingest)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# CV model weights (download on first pipeline run)
+yolov8n.pt
+*.pt
+
+# Large raw footage (~650 MB) — keep locally; paths in store_layout.json
+CCTV Footage/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Optional: uncomment if you do not want problem PDFs in git
+# *.pdf
+
+# OS / misc
+*.log
+*.tmp
+.DS_Store
