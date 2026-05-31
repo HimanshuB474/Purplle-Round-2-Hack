@@ -55,7 +55,7 @@ python -m pipeline.detect --root . --no-pos-filter   # keep every abandon (commi
 |-----|------|
 | Design | [`store-intelligence/docs/DESIGN.md`](./store-intelligence/docs/DESIGN.md) |
 | Choices | [`store-intelligence/docs/CHOICES.md`](./store-intelligence/docs/CHOICES.md) |
-| Pre-submit | [`store-intelligence/docs/PRE-PHASE3-CHECKLIST.md`](./store-intelligence/docs/PRE-PHASE3-CHECKLIST.md) |
+| Pre-submit | [`store-intelligence/docs/SUBMISSION-CHECKLIST.md`](./store-intelligence/docs/SUBMISSION-CHECKLIST.md) |
 
 ## Limits
 

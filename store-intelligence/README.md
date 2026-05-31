@@ -15,7 +15,16 @@ curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 
 **Live dashboard:** http://localhost:8000/dashboard — **Live replay** ingests `data/events.jsonl` in batches so metrics update on screen.
 
-**Verify:** `python scripts/verify_docker.py` · `pytest` (46 tests) · `python scripts/validate_part_bc.py`
+**Validate (submission):**
+
+```bash
+pytest -q
+python scripts/validate_part_ab.py
+python scripts/validate_part_bc.py
+python scripts/verify_docker.py
+```
+
+See [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md).
 
 ### Verified output (clean Docker run, 2026-05-31)
 
@@ -97,4 +106,4 @@ Store IDs: `ST1008` and alias `STORE_BLR_002`. Sample date: `2026-04-10`.
 
 ## Status
 
-Phases 1–3 + Part E dashboard complete. See [docs/PRE-PHASE3-CHECKLIST.md](docs/PRE-PHASE3-CHECKLIST.md).
+Phases 1–3 + Part E dashboard complete. See [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md).

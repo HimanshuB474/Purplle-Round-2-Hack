@@ -21,7 +21,7 @@ Git root is the **parent workspace** (`purple hack/`); the **submission tree** i
 | `pipeline/detect.py`, `tracker.py`, `emit.py`, `run.sh` | Same + `zones.py`, `staff.py`, `staff_detect.py`, `pos_filter.py`, `config.py`, `run.py` | Zone polygons, staff tagging, POS abandon filter |
 | `app/main.py` … `health.py` | Same + `heatmap.py`, `sessions.py`, `db.py`, `deps.py`, `pos.py`, `stores.py`, `config.py`, `logging_config.py` | Heatmap endpoint; shared session/POS helpers |
 | `tests/test_pipeline.py`, `test_metrics.py`, `test_anomalies.py` | Same + `test_ingest`, `test_funnel`, `test_health`, `test_degradation`, `test_assertions`, `conftest.py` | Broader API + degradation coverage |
-| `docs/DESIGN.md`, `CHOICES.md` | Same + `docs/context/` (split from `CONTEXT.md`), `PRE-PHASE3-CHECKLIST.md` | Context index for development; not required for scoring |
+| `docs/DESIGN.md`, `CHOICES.md`, `SUBMISSION-CHECKLIST.md` | Same + `docs/context/` (dev reference) | Context index optional for reviewers |
 | — | `scripts/`, `dashboard/static/`, `app/dashboard.py`, `app/dashboard_replay.py` | Ops/validation; **Part E** web UI at `/dashboard` |
 | — | Repo root: `README.md`, `CONTEXT.md`; local CCTV + challenge PDFs/CSV | Footage and reference materials **gitignored**; committed `data/*` suffices for reviewers |
 

@@ -8,10 +8,9 @@ htmlcov/
 
 # SQLite (Docker volume, validation scripts, local ingest)
 *.db
+*.db-journal
 data/*.db
-data/phase2_verify.db
-data/validation_*.db
-validation_*.db
+store_intelligence.db
 
 # YOLO weights (auto-downloaded into project root on pipeline run)
 yolov8n.pt

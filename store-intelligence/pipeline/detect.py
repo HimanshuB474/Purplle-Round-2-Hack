@@ -214,7 +214,9 @@ def _handle_entry_camera(
 
     if entry_zone and point_in_polygon(cx, cy, entry_zone.polygon):
         if not state.inside_store:
-            _emit_entry_or_reentry(emitter, state, timestamp, det_conf, is_reentry=False)
+            _emit_entry_or_reentry(
+                emitter, state, timestamp, det_conf, is_reentry=state.has_exited
+            )
             state.inside_store = True
             state.entry_emitted = True
             state.has_exited = False
@@ -519,21 +521,37 @@ def process_camera(
                     has_entry=state.entry_emitted or state.inside_store,
                 )
 
-            # First customer detection on non-entry cameras (entry cam uses line/zone logic)
+            # Same track reappears after EXIT (floor or entry cameras)
             if (
+                role not in ("STAFF",)
+                and not exclude
+                and not state.is_staff
+                and state.has_exited
+                and not state.inside_store
+                and state.frames_missing >= TRACK_GONE_FRAMES
+            ):
+                _emit_entry_or_reentry(
+                    emitter, state, timestamp, det_conf, is_reentry=True
+                )
+                state.inside_store = True
+                state.has_exited = False
+                state.entry_emitted = True
+
+            # First customer detection on non-entry cameras (entry cam uses line/zone logic)
+            elif (
                 role not in ("STAFF", "ENTRY")
                 and not exclude
                 and not state.is_staff
                 and not state.entry_emitted
             ):
                 _emit_entry_or_reentry(
-                    emitter, state, timestamp, det_conf, is_reentry=False
+                    emitter, state, timestamp, det_conf, is_reentry=state.has_exited
                 )
                 state.entry_emitted = True
                 state.inside_store = True
 
-            # Same track reappears after EXIT / lost frames
-            if (
+            # Entry camera: track reappears after EXIT / lost frames
+            elif (
                 role == "ENTRY"
                 and state.has_exited
                 and not state.inside_store
