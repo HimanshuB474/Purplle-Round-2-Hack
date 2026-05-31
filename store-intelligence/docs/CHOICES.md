@@ -116,9 +116,11 @@ Aligned with [DESIGN.md §9](./DESIGN.md#9-known-gaps--reviewer-faq). Stated her
 - **Choice:** Match POS timestamp to billing-zone events in `[T−5min, T]`; never join on customer name/phone from Brigade CSV.
 - **Caveat:** May disagree with hidden evaluation labels; we report metrics consistent with **our** documented rules in `app/sessions.py`.
 
-### L4 — Part E dashboard deferred
+### L4 — Part E dashboard (web UI + replay)
 
-- **Choice:** Ship API + Swagger; `dashboard/live.py` remains a stub (+10 bonus not attempted).
+- **Choice:** Single-page dashboard at `/dashboard` with polling snapshot API; background replay of `events.jsonl` via shared `ingest_raw_events()`.
+- **Rejected:** Separate Node frontend or second container — keeps `docker compose up` one-service.
+- **Reviewer:** Open `/dashboard` → **Live replay** → watch unique visitors and conversion rate climb.
 
 ---
 

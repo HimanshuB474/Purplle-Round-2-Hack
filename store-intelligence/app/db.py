@@ -17,6 +17,7 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
+    delete,
     select,
     func,
 )
@@ -129,6 +130,33 @@ def insert_event(db: Session, event) -> None:
             metadata_json=json.dumps(event.metadata.model_dump()),
         )
     )
+
+
+def delete_events_for_store_date(db: Session, store_id: str, target_date: date) -> int:
+    start = datetime.combine(target_date, datetime.min.time())
+    end = datetime.combine(target_date, datetime.max.time())
+    result = db.execute(
+        delete(EventRow).where(
+            EventRow.store_id == store_id,
+            EventRow.timestamp >= start,
+            EventRow.timestamp <= end,
+        )
+    )
+    return result.rowcount or 0
+
+
+def count_events_for_store_date(db: Session, store_id: str, target_date: date) -> int:
+    start = datetime.combine(target_date, datetime.min.time())
+    end = datetime.combine(target_date, datetime.max.time())
+    return db.scalar(
+        select(func.count())
+        .select_from(EventRow)
+        .where(
+            EventRow.store_id == store_id,
+            EventRow.timestamp >= start,
+            EventRow.timestamp <= end,
+        )
+    ) or 0
 
 
 def fetch_events_for_store_date(db: Session, store_id: str, target_date: date) -> list[EventRow]:

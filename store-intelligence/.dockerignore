@@ -8,7 +8,6 @@ data/validation_*.db
 pipeline/
 tests/
 docs/
-dashboard/
 scripts/
 *.md
 CCTV Footage/

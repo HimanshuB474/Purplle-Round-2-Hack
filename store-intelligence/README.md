@@ -13,6 +13,8 @@ python scripts/ingest_events.py    # POST events.jsonl → API
 curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 ```
 
+**Live dashboard:** http://localhost:8000/dashboard (click **Live replay** after `docker compose up`)
+
 **Verify Docker only:** `python scripts/verify_docker.py`
 
 **Windows:** If `docker` is not on PATH, start Docker Desktop first. Compose uses API-only image (~150 MB, no PyTorch).
@@ -59,7 +61,7 @@ Committed under `data/`: `events.jsonl`, `sample_events.jsonl`, `pos_transaction
 
 ## Known gaps (reviewers)
 
-Documented in [`docs/DESIGN.md`](docs/DESIGN.md#9-known-gaps--reviewer-faq) and [`docs/CHOICES.md`](docs/CHOICES.md#known-limitations-submission-transparency): no cross-camera Re-ID; `BILLING_QUEUE_ABANDON` only in `sample_events.jsonl`; conversion heuristic; no live dashboard.
+Documented in [`docs/DESIGN.md`](docs/DESIGN.md#9-known-gaps--reviewer-faq): no cross-camera Re-ID; `BILLING_QUEUE_ABANDON` only in `sample_events.jsonl`; conversion heuristic. **Dashboard:** [`/dashboard`](http://localhost:8000/dashboard).
 
 ## Status
 

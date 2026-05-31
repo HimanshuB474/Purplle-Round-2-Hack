@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements-api.txt
 
 COPY app/ ./app/
 
+COPY dashboard/ ./dashboard/
+
 COPY data/ ./data/
 
 

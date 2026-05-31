@@ -22,7 +22,7 @@ Git root is the **parent workspace** (`purple hack/`); the **submission tree** i
 | `app/main.py` … `health.py` | Same + `heatmap.py`, `sessions.py`, `db.py`, `deps.py`, `pos.py`, `stores.py`, `config.py`, `logging_config.py` | Heatmap endpoint; shared session/POS helpers |
 | `tests/test_pipeline.py`, `test_metrics.py`, `test_anomalies.py` | Same + `test_ingest`, `test_funnel`, `test_health`, `test_degradation`, `test_assertions`, `conftest.py` | Broader API + degradation coverage |
 | `docs/DESIGN.md`, `CHOICES.md` | Same + `docs/context/` (split from `CONTEXT.md`), `PRE-PHASE3-CHECKLIST.md` | Context index for development; not required for scoring |
-| — | `scripts/` (ingest, validate, verify), `scripts/dev/` (layout one-offs), `assertions.py`, `dashboard/live.py` (stub), `requirements-api.txt`, `Dockerfile` | Ops/validation; Part E dashboard not implemented |
+| — | `scripts/`, `dashboard/static/`, `app/dashboard.py`, `app/dashboard_replay.py` | Ops/validation; **Part E** web UI at `/dashboard` |
 | — | Repo root: `README.md`, `CONTEXT.md`; local CCTV + challenge PDFs/CSV | Footage and reference materials **gitignored**; committed `data/*` suffices for reviewers |
 
 **Intentionally not moved:** CCTV clips and challenge PDFs stay at repo root for local pipeline runs; reviewers use committed `data/events.jsonl` + Docker API without re-running CV.
@@ -43,7 +43,7 @@ CCTV clips (5 cams) ──► Detection pipeline (Phase 3) ──► events.json
                                            │
                      metrics / funnel / heatmap / anomalies / health
                                            │
-                                    (optional) live dashboard
+                                    GET /dashboard (live UI + replay)
 ```
 
 | Component | Responsibility |
@@ -183,14 +183,20 @@ These are **intentional v1 trade-offs**, documented for scoring transparency. Th
 
 **Impact:** Reported conversion (~10% after full ingest in dev) is **honest to our rules**, not a claim of match to Purplle’s hidden evaluation labels.
 
-### 9.4 Part E live dashboard not implemented (+10 bonus)
+### 9.4 Part E live dashboard (implemented)
 
-`dashboard/live.py` is a **placeholder** only. Reviewers should use:
+**URL:** `http://localhost:8000/dashboard` (same port as API; included in Docker image).
 
-- Swagger UI: `http://localhost:8000/docs`
-- `GET /stores/ST1008/metrics|funnel|heatmap|anomalies`
+| Piece | Role |
+|-------|------|
+| `dashboard/static/index.html` | Web UI — metrics cards, funnel bars, replay progress |
+| `app/dashboard.py` | Routes: page, `/dashboard/api/snapshot`, replay start/stop |
+| `app/dashboard_replay.py` | Streams `data/events.jsonl` into `ingest_raw_events()` in batches |
+| `dashboard/live.py` | CLI to open browser (`python dashboard/live.py`) |
 
-A streaming dashboard would poll ingest + `/metrics` or use SSE; out of scope for submitted v1.
+**Live demo flow:** Click **Live replay** → clears events for `2026-04-10` (optional reset) → ingests ~12 events every 600 ms → **unique visitors**, **conversion %**, and funnel counts update on each poll (~500 ms during replay).
+
+This satisfies Part E: metrics change in real time as the event stream flows, without batch-only `scripts/ingest_events.py` (though that script still works for one-shot ingest).
 
 ### 9.5 Other limitations (brief)
 

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Store Intelligence — Live Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f0a14;
+      --card: #1a1224;
+      --border: #3d2a52;
+      --accent: #9b59b6;
+      --accent2: #e056fd;
+      --text: #f4eef8;
+      --muted: #a894b8;
+      --ok: #2ecc71;
+      --warn: #f39c12;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(145deg, #0f0a14 0%, #1a0f28 50%, #0d1520 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.25rem;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { font-size: 1.35rem; font-weight: 600; }
+    h1 span { color: var(--accent2); }
+    .badge {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+    }
+    .badge.live { background: var(--ok); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 50% { opacity: 0.7; } }
+    .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+    }
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      font-weight: 600;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+    }
+    .card label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .card .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      transition: color 0.3s;
+    }
+    .card .value.flash { color: var(--accent2); }
+    .card .sub { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 800px) { .row { grid-template-columns: 1fr; } }
+    .funnel-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0.5rem 0;
+    }
+    .funnel-bar .name { width: 110px; font-size: 0.8rem; color: var(--muted); }
+    .funnel-bar .track {
+      flex: 1;
+      height: 22px;
+      background: #0a0610;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .funnel-bar .fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .funnel-bar .count { width: 48px; text-align: right; font-weight: 600; }
+    .progress-wrap {
+      margin-top: 1rem;
+      height: 8px;
+      background: #0a0610;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-wrap .bar {
+      height: 100%;
+      width: 0%;
+      background: var(--ok);
+      transition: width 0.4s ease;
+    }
+    .ticker {
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+      min-height: 1.2em;
+    }
+    .anomaly {
+      font-size: 0.85rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .anomaly:last-child { border: none; }
+    .sev-WARN { color: var(--warn); }
+    .sev-CRITICAL { color: #e74c3c; }
+    footer { margin-top: 2rem; font-size: 0.75rem; color: var(--muted); text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Purplle <span>Store Intelligence</span></h1>
+      <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">
+        ST1008 · 2026-04-10 · <span id="feedStatus">—</span>
+      </p>
+    </div>
+    <div class="controls">
+      <span id="liveBadge" class="badge">IDLE</span>
+      <button id="btnStart" class="primary">▶ Live replay</button>
+      <button id="btnStop" disabled>■ Stop</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <label>Unique visitors</label>
+      <div class="value" id="visitors">—</div>
+      <div class="sub" id="convertedSub">—</div>
+    </div>
+    <div class="card">
+      <label>Conversion rate</label>
+      <div class="value" id="conversion">—</div>
+      <div class="sub">POS-correlated (5 min window)</div>
+    </div>
+    <div class="card">
+      <label>Queue depth</label>
+      <div class="value" id="queue">—</div>
+    </div>
+    <div class="card">
+      <label>Events ingested</label>
+      <div class="value" id="ingested">—</div>
+      <div class="sub" id="replaySub">Click Live replay to stream pipeline events</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap"><div class="bar" id="replayBar"></div></div>
+
+  <div class="row" style="margin-top:1.5rem">
+    <div class="card">
+      <label style="margin-bottom:0.75rem">Conversion funnel</label>
+      <div id="funnel"></div>
+    </div>
+    <div class="card">
+      <label style="margin-bottom:0.75rem">Anomalies</label>
+      <div id="anomalies"><p style="color:var(--muted);font-size:0.85rem">None detected</p></div>
+      <div class="ticker" id="ticker">Waiting for data…</div>
+    </div>
+  </div>
+
+  <footer>
+    Part E live dashboard — metrics refresh as <code>data/events.jsonl</code> is replayed into the API.
+    <a href="/docs" style="color:var(--accent2)">API docs</a>
+  </footer>
+
+  <script>
+    const STORE = "ST1008";
+    const DATE = "2026-04-10";
+    let pollTimer = null;
+    let prevVisitors = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function flash(el) {
+      el.classList.add("flash");
+      setTimeout(() => el.classList.remove("flash"), 600);
+    }
+
+    function renderFunnel(stages, maxCount) {
+      const max = maxCount || Math.max(...stages.map((s) => s.count), 1);
+      $("funnel").innerHTML = stages
+        .map(
+          (s) => `
+        <div class="funnel-bar">
+          <span class="name">${s.stage}</span>
+          <div class="track"><div class="fill" style="width:${(100 * s.count) / max}%"></div></div>
+          <span class="count">${s.count}</span>
+        </div>`
+        )
+        .join("");
+    }
+
+    function renderAnomalies(items) {
+      if (!items.length) {
+        $("anomalies").innerHTML = '<p style="color:var(--muted);font-size:0.85rem">None detected</p>';
+        return;
+      }
+      $("anomalies").innerHTML = items
+        .map(
+          (a) =>
+            `<div class="anomaly sev-${a.severity}"><strong>${a.type}</strong> — ${a.detail}</div>`
+        )
+        .join("");
+    }
+
+    async function fetchSnapshot() {
+      const res = await fetch(`/dashboard/api/snapshot?store_id=${STORE}&target_date=${DATE}`);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    async function refresh() {
+      try {
+        const data = await fetchSnapshot();
+        const m = data.metrics;
+        const vEl = $("visitors");
+        const visitors = m.unique_visitors;
+        vEl.textContent = visitors;
+        if (prevVisitors !== null && prevVisitors !== visitors) flash(vEl);
+        prevVisitors = visitors;
+
+        $("convertedSub").textContent = `${m.converted_visitors} converted · ${m.total_transactions} POS txns`;
+        $("conversion").textContent = (m.conversion_rate * 100).toFixed(1) + "%";
+        $("queue").textContent = m.queue_depth_current;
+        $("ingested").textContent = data.ingested_events;
+
+        const st = data.health.stores?.find((s) => s.store_id === STORE) || data.health.stores?.[0];
+        $("feedStatus").textContent = st ? `${st.feed_status}${st.lag_seconds != null ? ` (${st.lag_seconds}s lag)` : ""}` : "—";
+
+        renderFunnel(data.funnel.stages);
+        renderAnomalies(data.anomalies.anomalies || []);
+
+        const rp = data.replay;
+        $("replayBar").style.width = rp.progress_pct + "%";
+        if (rp.running) {
+          $("liveBadge").textContent = "LIVE";
+          $("liveBadge").className = "badge live";
+          $("btnStart").disabled = true;
+          $("btnStop").disabled = false;
+          $("replaySub").textContent = `Streaming ${rp.sent}/${rp.total} · last ${rp.last_event_type || "—"}`;
+          $("ticker").textContent = `Last event: ${rp.last_event_type} · ${rp.last_visitor_id}`;
+        } else {
+          $("liveBadge").textContent = rp.sent >= rp.total && rp.total ? "DONE" : "IDLE";
+          $("liveBadge").className = "badge";
+          $("btnStart").disabled = false;
+          $("btnStop").disabled = true;
+          if (rp.total && rp.sent >= rp.total) {
+            $("replaySub").textContent = "Replay complete — metrics at full pipeline volume";
+          }
+        }
+      } catch (e) {
+        $("ticker").textContent = "Error: " + e.message;
+      }
+    }
+
+    function startPolling(ms) {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(refresh, ms);
+      refresh();
+    }
+
+    $("btnStart").onclick = async () => {
+      $("btnStart").disabled = true;
+      await fetch(
+        `/dashboard/api/replay/start?store_id=${STORE}&target_date=${DATE}&reset=true&batch_size=12&interval_ms=600`,
+        { method: "POST" }
+      );
+      startPolling(500);
+    };
+
+    $("btnStop").onclick = async () => {
+      await fetch("/dashboard/api/replay/stop", { method: "POST" });
+      startPolling(2000);
+    };
+
+    startPolling(2000);
+  </script>
+</body>
+</html>

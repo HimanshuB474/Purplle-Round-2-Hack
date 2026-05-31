@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.anomalies import router as anomalies_router
+from app.dashboard import router as dashboard_router
 from app.config import API_VERSION
 from app.db import init_db
 from app.funnel import router as funnel_router
@@ -33,6 +34,7 @@ app.include_router(metrics_router)
 app.include_router(funnel_router)
 app.include_router(heatmap_router)
 app.include_router(anomalies_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/")
@@ -42,6 +44,7 @@ def root():
         "service": "Store Intelligence API",
         "version": API_VERSION,
         "docs": "/docs",
+        "dashboard": "/dashboard",
         "endpoints": {
             "health": "/health",
             "ingest": "POST /events/ingest",

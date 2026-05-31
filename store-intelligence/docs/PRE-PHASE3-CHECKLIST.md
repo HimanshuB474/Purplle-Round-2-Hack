@@ -21,7 +21,7 @@
 | B — API | 35 | ✅ | Six endpoints; `validate_part_bc.py` |
 | C — Production | 20 | ✅ | Docker, logging, 503 on DB down (`test_degradation.py`) |
 | D — Thinking | 15 | ✅ | DESIGN + CHOICES |
-| E — Dashboard | +10 | ❌ not built | `dashboard/live.py` stub only — optional bonus |
+| E — Dashboard | +10 | ✅ | http://localhost:8000/dashboard — Live replay button |
 
 ## Integrity (score cap at 50 if violated)
 
@@ -38,7 +38,7 @@
 | No cross-camera Re-ID | DESIGN §9.1, CHOICES §Limitations | Expect separate `VIS_####` per track/clip |
 | No `BILLING_QUEUE_ABANDON` in `events.jsonl` | DESIGN §9.2, `data/README.md` | Use `sample_events.jsonl` for all 8 types |
 | Conversion rate heuristic | DESIGN §9.3, CHOICES Decision 3 | 5‑min POS window; may differ from hidden labels |
-| Part E dashboard | DESIGN §9.4 | API + Swagger sufficient for base score |
+| Part E dashboard | DESIGN §9.4 | `/dashboard` + Live replay |
 
 ## Pre-submit commands
 

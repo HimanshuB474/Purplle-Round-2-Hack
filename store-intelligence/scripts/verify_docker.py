@@ -77,6 +77,12 @@ def main() -> int:
         print(logs.stdout or logs.stderr)
         return 1
 
+    code_dash, dash = _curl("/dashboard")
+    if code_dash != 200 or not isinstance(dash, str) or "Live replay" not in dash:
+        print(f"FAIL: /dashboard {code_dash}")
+        return 1
+    print("OK: /dashboard (Part E UI)")
+
     code, metrics = _curl(f"/stores/ST1008/metrics?date={REFERENCE_DATE}")
     if code != 200 or not isinstance(metrics, dict):
         print(f"FAIL: metrics {code} {metrics}")

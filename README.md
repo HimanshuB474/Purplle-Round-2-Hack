@@ -16,6 +16,8 @@ curl "http://localhost:8000/health"
 curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 ```
 
+**Live dashboard (Part E):** http://localhost:8000/dashboard → click **Live replay** to stream events and watch metrics update.
+
 **Docker smoke test:** `python scripts/verify_docker.py`  
 **Full validation:** `python scripts/validate_part_bc.py`  
 **Tests:** `pytest` (from `store-intelligence/`)
@@ -68,9 +70,9 @@ Purplle-Round-2-Hack/
 | Cross-camera Re-ID | Not implemented — `VIS_####` per track, not per person across cameras |
 | `BILLING_QUEUE_ABANDON` | **0** in committed `events.jsonl`; **1** in `sample_events.jsonl` (all 8 types) |
 | Conversion rate | 5‑min POS window + billing zone — heuristic, not ground-truth labels |
-| Live dashboard | Not built (`dashboard/live.py` stub) — +10 bonus only |
+| Live dashboard | **Built** — http://localhost:8000/dashboard |
 
-Full detail: [`store-intelligence/docs/DESIGN.md`](./store-intelligence/docs/DESIGN.md#9-known-gaps--reviewer-faq) and [`CHOICES.md`](./store-intelligence/docs/CHOICES.md#known-limitations-submission-transparency).
+Other gaps (Re-ID, abandon in pipeline file, conversion heuristic): [`DESIGN.md §9`](./store-intelligence/docs/DESIGN.md#9-known-gaps--reviewer-faq).
 
 ## Status
 

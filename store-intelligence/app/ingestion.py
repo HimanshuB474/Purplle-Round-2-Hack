@@ -17,6 +17,36 @@ from app.stores import normalize_event_store_id
 router = APIRouter()
 
 
+def ingest_raw_events(db: Session, raw_events: list[Any]) -> IngestResponse:
+    """Shared ingest logic for REST and dashboard replay."""
+    accepted = 0
+    rejected = 0
+    errors: list[dict] = []
+
+    for index, raw in enumerate(raw_events):
+        if not isinstance(raw, dict):
+            rejected += 1
+            errors.append({"index": index, "event_id": None, "reason": "event must be an object"})
+            continue
+
+        event, error = _parse_event(raw, index)
+        if error:
+            rejected += 1
+            errors.append(error)
+            continue
+
+        assert event is not None
+        if event_exists(db, event.event_id):
+            accepted += 1
+            continue
+
+        insert_event(db, event)
+        accepted += 1
+
+    db.commit()
+    return IngestResponse(accepted=accepted, rejected=rejected, errors=errors)
+
+
 def _parse_event(raw: dict, index: int) -> tuple[StoreEvent | None, dict | None]:
     try:
         event = StoreEvent.model_validate(raw)
@@ -56,29 +86,4 @@ def ingest_events(
             detail={"error": "batch_too_large", "max_batch_size": MAX_INGEST_BATCH},
         )
 
-    accepted = 0
-    rejected = 0
-    errors: list[dict] = []
-
-    for index, raw in enumerate(raw_events):
-        if not isinstance(raw, dict):
-            rejected += 1
-            errors.append({"index": index, "event_id": None, "reason": "event must be an object"})
-            continue
-
-        event, error = _parse_event(raw, index)
-        if error:
-            rejected += 1
-            errors.append(error)
-            continue
-
-        assert event is not None
-        if event_exists(db, event.event_id):
-            accepted += 1
-            continue
-
-        insert_event(db, event)
-        accepted += 1
-
-    db.commit()
-    return IngestResponse(accepted=accepted, rejected=rejected, errors=errors)
+    return ingest_raw_events(db, raw_events)
