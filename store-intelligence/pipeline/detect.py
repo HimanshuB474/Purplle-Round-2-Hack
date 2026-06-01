@@ -10,6 +10,8 @@ from typing import Any
 import cv2
 
 from pipeline.config import (
+    BILLING_ABANDON_MIN_SEC,
+    BILLING_JOIN_MIN_SEC,
     DETECT_CONF,
     DETECT_CONF_STAFF_CAM,
     DWELL_EMIT_SEC,
@@ -101,6 +103,7 @@ def _emit_exit(
     state.current_zones.clear()
     state.billing_joined = False
     state.billing_active = False
+    state.billing_join_at = None
     reg = emitter.reid_registry
     if reg is not None:
         reg.mark_exited(state.visitor_id)
@@ -264,17 +267,20 @@ def _handle_zones(
             continue
         seq = state.bump_session()
         if zid == "BILLING" and state.billing_joined and not state.is_staff:
-            emitter.emit(
-                visitor_id=state.visitor_id,
-                event_type="BILLING_QUEUE_ABANDON",
-                timestamp=timestamp,
-                zone_id="BILLING",
-                dwell_ms=0,
-                is_staff=state.is_staff,
-                confidence=det_conf,
-                session_seq=seq,
-            )
+            joined_at = state.billing_join_at
+            if joined_at is not None and video_sec - joined_at >= BILLING_ABANDON_MIN_SEC:
+                emitter.emit(
+                    visitor_id=state.visitor_id,
+                    event_type="BILLING_QUEUE_ABANDON",
+                    timestamp=timestamp,
+                    zone_id="BILLING",
+                    dwell_ms=0,
+                    is_staff=state.is_staff,
+                    confidence=det_conf,
+                    session_seq=seq,
+                )
             state.billing_joined = False
+            state.billing_join_at = None
         emitter.emit(
             visitor_id=state.visitor_id,
             event_type="ZONE_EXIT",
@@ -312,24 +318,30 @@ def _handle_zones(
             state.zone_entered_at[zid] = video_sec
             state.last_dwell_emit[zid] = video_sec
 
-            if zid == "BILLING" and role == "BILLING" and not state.is_staff:
-                depth = _billing_queue_depth(tracks, zones)
-                emitter.emit(
-                    visitor_id=state.visitor_id,
-                    event_type="BILLING_QUEUE_JOIN",
-                    timestamp=timestamp,
-                    zone_id="BILLING",
-                    dwell_ms=0,
-                    is_staff=state.is_staff,
-                    confidence=det_conf,
-                    queue_depth=depth,
-                    sku_zone=z.sku_zone or "QUEUE",
-                    session_seq=state.bump_session(),
-                )
-                state.billing_joined = True
-
         state.current_zones.add(zid)
         entered = state.zone_entered_at.get(zid, video_sec)
+        if (
+            zid == "BILLING"
+            and role == "BILLING"
+            and not state.is_staff
+            and not state.billing_joined
+            and video_sec - entered >= BILLING_JOIN_MIN_SEC
+        ):
+            depth = _billing_queue_depth(tracks, zones)
+            emitter.emit(
+                visitor_id=state.visitor_id,
+                event_type="BILLING_QUEUE_JOIN",
+                timestamp=timestamp,
+                zone_id="BILLING",
+                dwell_ms=0,
+                is_staff=state.is_staff,
+                confidence=det_conf,
+                queue_depth=depth,
+                sku_zone=state.sku_by_zone.get(zid) or z.sku_zone or "QUEUE",
+                session_seq=state.bump_session(),
+            )
+            state.billing_joined = True
+            state.billing_join_at = video_sec
         last_dwell = state.last_dwell_emit.get(zid, entered)
         if video_sec - last_dwell >= dwell_emit_sec:
             dwell_ms = int((video_sec - entered) * 1000)

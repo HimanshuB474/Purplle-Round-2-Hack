@@ -27,6 +27,7 @@ class TrackState:
     session_seq: int = 0
     billing_active: bool = False
     billing_joined: bool = False
+    billing_join_at: float | None = None
     sku_by_zone: dict[str, str | None] = field(default_factory=dict)
     zone_miss: dict[str, int] = field(default_factory=dict)
     frames_missing: int = 0

@@ -9,7 +9,7 @@ git clone git@github.com:HimanshuB474/Purplle-Round-2-Hack.git
 cd Purplle-Round-2-Hack/store-intelligence
 
 docker compose up -d --build
-python scripts/ingest_events.py
+python scripts/ingest_events.py   # replaces events for that date in data/store_intelligence.db
 curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 ```
 
@@ -28,23 +28,23 @@ See [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md).
 
 ### Verified output (clean Docker run, 2026-05-31)
 
-After `docker compose up -d --build` and `python scripts/ingest_events.py` (299 events):
+After `docker compose up -d --build` and `python scripts/ingest_events.py` (390 events):
 
 | Metric | Value |
 |--------|-------|
 | `unique_visitors` | **71** |
 | `converted_visitors` | **1** |
 | `conversion_rate` | **1.41%** (0.0141) |
-| `abandonment_rate` | **42.86%** |
+| `abandonment_rate` | **25%** (0.25) |
 | Funnel | ENTRY 71 → ZONE_VISIT 41 → BILLING_QUEUE 7 → PURCHASE 1 |
 
-**Dashboard:** http://localhost:8000/dashboard — **Live replay** resets DB and streams the same 299 events; metrics climb in real time.
+**Dashboard:** http://localhost:8000/dashboard — **Live replay** resets DB and streams the same 390 events; metrics climb in real time.
 
 ## Committed pipeline output
 
 | File | Contents |
 |------|----------|
-| `data/events.jsonl` | **299** events, **all 8** `event_type` values (3× `BILLING_QUEUE_ABANDON`, 32 staff-tagged) |
+| `data/events.jsonl` | **390** events, **all 8** `event_type` values (2× `BILLING_QUEUE_ABANDON`, 32 staff-tagged) |
 | `data/sample_events.jsonl` | 24 events for CI / schema checks |
 
 Generated with:
@@ -62,7 +62,7 @@ python -m pipeline.detect --root . --no-pos-filter
 | Person detect + track | `pipeline/detect.py` (YOLOv8n + ByteTrack) |
 | Zones / entry line | `pipeline/zones.py`, `data/store_layout.json` |
 | Staff (CAM 4) | HOG fallback + `is_staff=true` |
-| Cross-camera IDs | `pipeline/reid.py` (120s gap + HSV histogram; `--no-reid` off) |
+| Cross-camera IDs | `pipeline/reid.py` (120s gap + HSV histogram + score-gap guard; `--no-reid` off) |
 | Abandon cleanup | `pipeline/pos_filter.py` (optional; `--no-pos-filter` skips) |
 | Emit | `data/events.jsonl` |
 

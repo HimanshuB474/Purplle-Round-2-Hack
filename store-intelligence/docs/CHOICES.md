@@ -15,7 +15,7 @@ Phase 3 must turn five Brigade CCTV clips (~2–2.5 min, 1080p, 25–29.97 fps) 
 | Option | Pros | Cons |
 |--------|------|------|
 | **YOLOv8n + ByteTrack** | Fast on CPU/GPU; good person class; ByteTrack handles occlusions reasonably | Needs tuning for crowded entry; no built-in Re-ID across cameras |
-| **RT-DETR + DeepSORT** | Strong accuracy on small objects | Heavier; slower for hackathon iteration on 5 full clips |
+| **RT-DETR + DeepSORT** | Strong accuracy on small objects | Heavier; slower full-clip runs on five 1080p feeds |
 | **MediaPipe Pose** | Lightweight | Weak for crowd counting and queue depth |
 | **VLM (GPT-4V / Claude vision) per frame** | Could label zones/staff semantically | Expensive, slow, non-deterministic timestamps; poor for 4k+ frames per clip |
 
@@ -25,11 +25,11 @@ Use **YOLOv8n + ByteTrack** for the baseline pipeline, polygons from `store_layo
 
 ### What I Chose
 
-**YOLOv8n + ByteTrack**, **0.5 s sampling** (`PIPELINE_SAMPLE_SEC`), zone debounce, track-loss EXIT/REENTRY, sequential `VIS_####` IDs (**not** cross-camera Re-ID — see [Limitations](#known-limitations-submission-transparency)), timestamp base **19:52 UTC** (POS-aligned; overlay `20:10` in layout metadata).
+**YOLOv8n + ByteTrack**, **0.5 s sampling** (`PIPELINE_SAMPLE_SEC`), zone debounce, track-loss EXIT/REENTRY, `VIS_####` IDs with cross-camera merge in `pipeline/reid.py` (see [Implementation scope](#implementation-scope)), timestamp base **19:52 UTC** (POS-aligned; overlay `20:10` in layout metadata).
 
 ### Why
 
-~299 events in **~10 min** on CPU. Committed `events.jsonl`: **all 8 types** (3 abandons with `--no-pos-filter`). Staff via **HOG fallback** on CAM 4 (32 staff-tagged). `store_id: STORE_BLR_002`. Dwell **30 s**. Cross-cam: `pipeline/reid.py`.
+~390 events in **~12 min** on CPU. Committed `events.jsonl`: **all 8 types** (2 abandons with `--no-pos-filter`). Staff via **HOG fallback** on CAM 4 (32 staff-tagged). `store_id: STORE_BLR_002`. Dwell **30 s**. Re-ID: HSV histogram + ambiguous-match guard (`REID_MIN_SCORE_GAP`).
 
 ### If I Used a VLM
 
@@ -77,7 +77,7 @@ Phase 2 acceptance gate: six REST endpoints, idempotent ingest, real computation
 | Option | Pros | Cons |
 |--------|------|------|
 | **SQLite + compute-on-read** | Zero extra services; easy pytest with tmp DB; honest dynamic metrics | Heavier read path as event volume grows |
-| **PostgreSQL + materialized views** | Fast dashboards at scale | Overkill for one store / hackathon Docker |
+| **PostgreSQL + materialized views** | Fast dashboards at scale | Extra ops for single-store Docker demo; SQLite sufficient for Brigade |
 | **Redis cache of metrics** | Low latency reads | Invalidation complexity after ingest; two systems to fail |
 | **207 Multi-Status on partial ingest** | HTTP-native partial success | Awkward for simple `curl` clients |
 
@@ -95,32 +95,32 @@ Meets “metrics change when events change” without a separate batch job. Test
 
 ---
 
-## Known limitations (submission transparency)
+## Implementation scope
 
-Aligned with [DESIGN.md §9](./DESIGN.md#9-known-gaps--reviewer-faq). Stated here so CHOICES alone answers “what did you knowingly not solve?”
+Aligned with [DESIGN.md §9](./DESIGN.md#9-implementation-notes--faq).
 
-### L1 — Cross-camera Re-ID (best-effort)
+### L1 — Cross-camera Re-ID
 
-- **Choice:** ENTRY camera processed first; `CrossCameraRegistry` + HSV histogram + 120s gap; post-pass merge in `pipeline/reid.py`.
-- **Rejected:** Heavy OSNet/torchreid dependency in Docker API image.
-- **Flags:** `--no-reid`, env `PIPELINE_REID_GAP_SEC`, `PIPELINE_REID_MIN_CORR`.
+- **Choice:** ENTRY camera processed first; `CrossCameraRegistry` + HSV histogram + 120s gap; merge only when score gap ≥ `REID_MIN_SCORE_GAP`; optional post-pass in `pipeline/reid.py`.
+- **Rejected:** Heavy OSNet/torchreid dependency in the Docker API image (keeps image lean).
+- **Flags:** `--no-reid`, env `PIPELINE_REID_GAP_SEC`, `PIPELINE_REID_MIN_CORR`, `PIPELINE_REID_SCORE_GAP`.
 
-### L2 — `BILLING_QUEUE_ABANDON` filter
+### L2 — `BILLING_QUEUE_ABANDON`
 
-- **Choice:** Softer POS filter by default; `--no-pos-filter` for full abandon retention when regenerating `events.jsonl`.
+- **Choice:** Dwell-gated join/abandon in `detect.py`; optional POS filter by default; `--no-pos-filter` retains all abandon events when regenerating `events.jsonl`.
 - **Reviewer:** Check abandon count in pipeline log line; `sample_events.jsonl` for schema tests.
 
 ### L3 — Conversion rate (one txn → one visitor)
 
-- **Choice:** Greedy assignment — each POS row picks the eligible visitor with the latest billing timestamp in the conversion window; never join on customer name/phone.
-- **Caveat:** May disagree with hidden evaluation labels; see `tests/test_sessions_conversion.py`.
+- **Choice:** Greedy assignment — each POS row picks the eligible visitor with the latest billing timestamp in the conversion window; no join on customer name/phone.
+- **Tests:** `tests/test_sessions_conversion.py`.
 
 ### L4 — Part E dashboard (web UI + replay)
 
 - **Choice:** Single-page dashboard at `/dashboard` with polling snapshot API; background replay of `events.jsonl` via shared `ingest_raw_events()`.
-- **Rejected:** Separate Node frontend or second container — keeps `docker compose up` one-service.
+- **Rejected:** Separate Node frontend or second container — single `docker compose up` service.
 - **Reviewer:** Open `/dashboard` → **Live replay** → watch unique visitors and conversion rate climb.
 
 ---
 
-*Last updated: submission — limitations L1–L4 explicit for reviewers.*
+*Last updated: submission — L1–L4 summarise scoped design decisions.*

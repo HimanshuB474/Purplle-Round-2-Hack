@@ -25,4 +25,10 @@ REID_ENABLED = os.getenv("PIPELINE_REID", "1") not in ("0", "false", "False")
 REID_TIME_GAP_SEC = float(os.getenv("PIPELINE_REID_GAP_SEC", "120"))
 REID_USE_APPEARANCE = os.getenv("PIPELINE_REID_APPEARANCE", "1") not in ("0", "false", "False")
 REID_APPEARANCE_MIN_CORRELATION = float(os.getenv("PIPELINE_REID_MIN_CORR", "0.62"))
+# Require clear winner over 2nd-best candidate (reduces wrong cross-cam merges)
+REID_MIN_SCORE_GAP = float(os.getenv("PIPELINE_REID_SCORE_GAP", "0.08"))
 REID_POST_PASS = os.getenv("PIPELINE_REID_POST", "0") not in ("0", "false", "False")
+
+# Billing queue: ignore walk-throughs and instant zone flicker
+BILLING_JOIN_MIN_SEC = float(os.getenv("PIPELINE_BILLING_JOIN_SEC", "1.0"))
+BILLING_ABANDON_MIN_SEC = float(os.getenv("PIPELINE_BILLING_ABANDON_SEC", "2.0"))

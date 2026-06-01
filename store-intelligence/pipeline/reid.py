@@ -12,6 +12,7 @@ import numpy as np
 from pipeline.config import (
     REID_APPEARANCE_MIN_CORRELATION,
     REID_ENABLED,
+    REID_MIN_SCORE_GAP,
     REID_TIME_GAP_SEC,
     REID_USE_APPEARANCE,
 )
@@ -45,6 +46,23 @@ def histogram_correlation(a: np.ndarray, b: np.ndarray) -> float:
     return float(cv2.compareHist(a.reshape(-1, 1), b.reshape(-1, 1), cv2.HISTCMP_CORREL))
 
 
+def pick_unambiguous_match(
+    candidates: list[tuple[str, float]],
+    *,
+    min_gap: float,
+) -> str | None:
+    """Return visitor_id only when one candidate clearly wins (avoids twin-merge)."""
+    if not candidates:
+        return None
+    ranked = sorted(candidates, key=lambda x: x[1], reverse=True)
+    best_id, best_score = ranked[0]
+    if len(ranked) == 1:
+        return best_id
+    if best_score - ranked[1][1] >= min_gap:
+        return best_id
+    return None
+
+
 @dataclass
 class ActiveVisitor:
     visitor_id: str
@@ -64,6 +82,7 @@ class CrossCameraRegistry:
     gap: timedelta = field(default_factory=lambda: timedelta(seconds=REID_TIME_GAP_SEC))
     use_appearance: bool = REID_USE_APPEARANCE
     min_correlation: float = REID_APPEARANCE_MIN_CORRELATION
+    min_score_gap: float = REID_MIN_SCORE_GAP
     active: dict[str, ActiveVisitor] = field(default_factory=dict)
 
     def register(
@@ -150,9 +169,7 @@ class CrossCameraRegistry:
             elif not self.use_appearance and av.has_entry:
                 candidates.append((av.visitor_id, 1.0 - dt / max(self.gap.total_seconds(), 1)))
 
-        if not candidates:
-            return None
-        return max(candidates, key=lambda x: x[1])[0]
+        return pick_unambiguous_match(candidates, min_gap=self.min_score_gap)
 
 
 def merge_visitor_ids_post(events: list[dict[str, Any]]) -> list[dict[str, Any]]:

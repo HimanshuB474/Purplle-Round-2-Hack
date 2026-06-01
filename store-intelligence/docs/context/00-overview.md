@@ -77,8 +77,8 @@ This is **not** a model-building-only exercise. You must design and implement th
 | Format | Take-home, work independently within the window |
 | AI Policy | Fully open-book — all AI tools permitted and **expected** |
 | Submission | Git repo + `DESIGN.md` + `CHOICES.md` |
-| Scoring | Automated tests + contextual follow-up video (5 questions, 30 min async) |
-| Window | 48 hours from dataset download confirmation email |
+| Scoring | Automated tests + submission review (`DESIGN.md`, `CHOICES.md`, repo) |
+| Window | Per challenge email (dataset download confirmation) |
 
 ---
 

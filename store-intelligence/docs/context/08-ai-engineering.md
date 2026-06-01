@@ -13,7 +13,6 @@
 | **DESIGN.md** | Clear architecture + 2–3 AI-assisted decisions with agree/disagree | Vague diagram, no AI section |
 | **Test prompt blocks** | Every test file has `# PROMPT:` + `# CHANGES MADE:` showing iteration | Happy-path-only tests, no prompt history |
 | **Detection model** | Model trade-offs documented; VLM prompts included if used | Unexplained default (e.g. "used YOLO because popular") |
-| **Follow-up video prep** | Can answer questions about YOUR code in <2 min each | Generic answers that don't reference your choices |
 
 ---
 
@@ -82,9 +81,9 @@ Document 2–3 decisions where an LLM influenced your design. For each:
 - What you accepted or rejected
 - Why
 
-**Section 8 — Known Limitations & Future Work**
-- What breaks at 40 stores
-- Detection accuracy trade-offs
+**Section 9 — Implementation Notes & FAQ** (in DESIGN.md)
+- Operations and scale (e.g. multi-store)
+- Re-ID, queue, and conversion behaviour
 
 ---
 
@@ -122,7 +121,7 @@ Create at `docs/CHOICES.md`. **Exactly three decisions**, each using this templa
 | LLM evaluates detection model trade-offs → documented in CHOICES.md | Generic CHOICES.md with no personal reasoning |
 | VLM for zone/staff classification → prompt in DESIGN.md | Tests only cover happy path |
 | Iterate on detection based on AI feedback + your evaluation | Pipeline ignores all 7 edge cases |
-| CHOICES.md shows where you **disagreed** with AI | Cannot answer follow-up questions about your code |
+| CHOICES.md shows where you **disagreed** with AI | CHOICES.md with no overrides or rationale |
 | Prompt blocks show real iteration (CHANGES MADE is non-empty) | Hardcoded outputs / no real computation (score cap 50) |
 
 ---
@@ -140,20 +139,4 @@ Update docs **as you code** — not at the end:
 | VLM prompts (if any) | DESIGN.md §7 + CHOICES.md Decision 1 |
 | Test generation | `# PROMPT:` block in each test file |
 | Docker setup | DESIGN.md §6 + README.md |
-| Known bugs / trade-offs | DESIGN.md §8 (prepares follow-up video) |
-
----
-
-## 10.7 Follow-Up Video Prep
-
-Within 48 hours of submission — 5 questions, 30 min async video. Document in DESIGN.md §8 while building:
-
-| Likely Question | Document Now |
-|-----------------|--------------|
-| Detection struggles (occlusion) | What failed; what you tried next |
-| visitor_id edge cases | Same door, 3-second gap between people |
-| Scale at 40 stores | First bottleneck in your architecture |
-| VLM vs rule-based zones | Exact prompt; why kept/rejected |
-| Funnel REENTRY dedup | How your code handles it |
-
-Generic answers fail — reference YOUR function names and CHOICES.md decisions.
+| Implementation notes | DESIGN.md §9 |

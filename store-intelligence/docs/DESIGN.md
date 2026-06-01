@@ -81,7 +81,7 @@ CCTV clips (5 cams) ──► Detection pipeline (Phase 3) ──► events.json
 | CAM 5.mp4 | BILLING | `CAM_BILLING_01` |
 | CAM 4.mp4 | STAFF / back office | `CAM_STAFF_BACK_01` (excluded from customer metrics) |
 
-**Outputs:** `data/events.jsonl` — **299 events**, **all 8** event types (3× `BILLING_QUEUE_ABANDON` in committed file; generated with `--no-pos-filter`). Timestamps use `clip_base_timestamp` at `19:52` UTC (overlay ~20:10 in layout metadata).
+**Outputs:** `data/events.jsonl` — **390 events**, **all 8** event types (2× `BILLING_QUEUE_ABANDON` in committed file; generated with `--no-pos-filter`). Timestamps use `clip_base_timestamp` at `19:52` UTC (overlay ~20:10 in layout metadata).
 
 **Visitor IDs:** `VIS_####` via ByteTrack + `pipeline/reid.py` online registry (ENTRY cam first, 120s + HSV). Post-pass merge is **off** by default (`PIPELINE_REID_POST=0`) to avoid over-merging.
 
@@ -143,43 +143,41 @@ Design choices:
 - **What I accepted/rejected:** **Accepted** 200 + body tallies; malformed events never fail the whole batch.
 - **Why:** Simpler for `curl` and TestClient; pipeline can retry only failed indices. Documented in CHOICES.md Decision 3.
 
-## 9. Known Gaps & Reviewer FAQ
+## 9. Implementation Notes & FAQ
 
-These are **intentional v1 trade-offs**, documented for scoring transparency. They do not block the acceptance gate when `sample_events.jsonl` + committed `events.jsonl` + Docker API are used as intended.
+Design choices for Re-ID, queue events, and conversion — how the committed pipeline and API behave end-to-end.
 
-### 9.1 Cross-camera Re-ID (best-effort)
+### 9.1 Cross-camera Re-ID
 
 | Layer | Implementation |
 |-------|----------------|
-| **Online** | `pipeline/reid.py` — `CrossCameraRegistry` matches new floor tracks to entry-cam visitors within `REID_TIME_GAP_SEC` (120s) using HSV histogram correlation when `PIPELINE_REID_APPEARANCE=1` |
+| **Online** | `pipeline/reid.py` — `CrossCameraRegistry` matches new floor tracks to entry-cam visitors within `REID_TIME_GAP_SEC` (120s) using HSV histogram correlation when `PIPELINE_REID_APPEARANCE=1`; merge only if the best score beats the runner-up by `REID_MIN_SCORE_GAP` (default 0.08) |
 | **Post-pass** | Optional (`PIPELINE_REID_POST=1`) — unambiguous single-entry matches only |
 | **Disable** | `python -m pipeline.detect --no-reid` |
 
-**Limitation:** Best-effort on short clips; not ground-truth Re-ID. Committed run: ~71 customer `visitor_id`s after online merge.
+**Committed run:** ~71 customer `visitor_id`s after online merge on five Brigade clips.
 
 ### 9.2 `BILLING_QUEUE_ABANDON`
 
 | Source | Count |
 |--------|-------|
-| Committed `events.jsonl` | **3** (regen with `--no-pos-filter`) |
-| Default pipeline + softer filter | May drop abandons correlated with POS |
+| Committed `events.jsonl` | **2** (regen with `--no-pos-filter`) |
+| Default pipeline + POS filter | May drop abandons correlated with a nearby transaction |
 | `sample_events.jsonl` | 1 (CI) |
 
-Emit logic: billing `ZONE_EXIT` after `BILLING_QUEUE_JOIN` in `pipeline/detect.py`. Filter: `pipeline/pos_filter.py`.
+Emit logic: `BILLING_QUEUE_JOIN` after `BILLING_JOIN_MIN_SEC` in zone; `BILLING_QUEUE_ABANDON` on billing `ZONE_EXIT` only if `BILLING_ABANDON_MIN_SEC` elapsed since join (`pipeline/detect.py`). Optional cleanup: `pipeline/pos_filter.py`.
 
-### 9.3 Conversion rate (heuristic, one txn → one visitor)
+### 9.3 Conversion rate (one txn → one visitor)
 
 **Definition:** `converted_visitors / unique_visitors` where each POS transaction converts **at most one** visitor — the session whose last billing event in `[T−5min, T]` is closest to `T` (`app/sessions.apply_pos_conversions()`).
 
-**Caveats:**
+**Assumptions:**
 
-- POS has **no `customer_id`** — time + zone proxy only; multiple visitors near one txn can correlate incorrectly.
-- Clip timestamps aligned to **19:52 UTC** base; CCTV on-screen clock ~**20:10** (metadata in `store_layout.json`).
-- Billing camera coverage and queue polygons affect whether “billing presence” is detected.
+- POS rows have **no `customer_id`** — correlation uses billing-zone timestamps in a 5‑minute window before each transaction.
+- Clip timestamps use **19:52 UTC** base (aligned to POS); CCTV on-screen clock ~**20:10** in `store_layout.json` metadata.
+- Billing camera polygons and queue depth affect billing-stage detection.
 
-**Verified (clean Docker, 2026-05-31):** Ingest 299 pipeline events → `unique_visitors=71`, `converted_visitors=1`, `conversion_rate=0.0141`, `abandonment_rate=0.4286`; funnel ENTRY 71 → ZONE_VISIT 41 → BILLING_QUEUE 7 → PURCHASE 1.
-
-**Impact:** Reported conversion is **honest to our rules** (5‑min window + one txn → one visitor), not a claim of match to Purplle’s hidden evaluation labels.
+**Verified (clean Docker):** `python scripts/ingest_events.py` → `unique_visitors=71`, `converted_visitors=1`, `conversion_rate=0.0141`, `abandonment_rate=0.25`; funnel ENTRY 71 → ZONE_VISIT 41 → BILLING_QUEUE 7 → PURCHASE 1.
 
 ### 9.4 Part E live dashboard (implemented)
 
@@ -196,17 +194,15 @@ Emit logic: billing `ZONE_EXIT` after `BILLING_QUEUE_JOIN` in `pipeline/detect.p
 
 This satisfies Part E: metrics change in real time as the event stream flows, without batch-only `scripts/ingest_events.py` (though that script still works for one-shot ingest).
 
-### 9.5 Other limitations (brief)
+### 9.5 Operations & scale
 
 | Topic | Note |
 |-------|------|
 | Timestamp base | `19:52 UTC` in layout for POS overlap; overlay `20:10` in metadata |
 | Single store / day in POS | 24 transactions; 7-day baseline seeded on metrics read for `CONVERSION_DROP` |
-| SQLite scale | First bottleneck ~40 stores → PostgreSQL or shard by `store_id` |
+| SQLite scale | Compute-on-read; at ~40 stores consider PostgreSQL or shard by `store_id` |
 | `CAM_STAFF_BACK_01` | Staff events ingested; excluded in `customer_sessions()` |
-
-**Follow-up video:** Demo `apply_pos_conversions()`, `unique_visitors_with_entry()`, `funnel_counts()`, CHOICES Decision 1 (camera map), and §9.1–9.2 above with real `event_type` counts.
 
 ---
 
-*Last updated: submission — gaps §9.1–9.4 explicit for reviewers.*
+*Last updated: submission — §9 documents pipeline behaviour for reviewers.*

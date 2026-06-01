@@ -31,7 +31,7 @@ The ZIP archive should contain:
 | `pos_transactions.csv` | ✅ Present | 24 rows — `store-intelligence/data/pos_transactions.csv` |
 | `assertions.py` | ✅ Present | Example API checks — `pytest assertions.py` |
 
-**Gap to close (Phase 3):** Run detection pipeline on clips → `data/events.jsonl` (required for evaluation acceptance gate). Phase 2 API is complete. Camera roles and polygons: [`data/store_layout.json`](../data/store_layout.json).
+**Pipeline output:** `data/events.jsonl` generated from clips (acceptance gate). Camera roles and polygons: [`data/store_layout.json`](../data/store_layout.json).
 
 ---
 

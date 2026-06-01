@@ -7,7 +7,17 @@ import json
 from datetime import date
 
 from pipeline.pos_filter import filter_false_billing_abandons
-from pipeline.reid import merge_visitor_ids_post
+from pipeline.reid import merge_visitor_ids_post, pick_unambiguous_match
+
+
+def test_pick_unambiguous_match_single_candidate():
+    assert pick_unambiguous_match([("VIS_0001", 0.9)], min_gap=0.08) == "VIS_0001"
+
+
+def test_pick_unambiguous_match_rejects_ambiguous():
+    candidates = [("VIS_0001", 0.72), ("VIS_0002", 0.68)]
+    assert pick_unambiguous_match(candidates, min_gap=0.08) is None
+    assert pick_unambiguous_match(candidates, min_gap=0.02) == "VIS_0001"
 
 
 def test_merge_floor_visitor_to_entry():

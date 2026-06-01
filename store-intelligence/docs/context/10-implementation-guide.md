@@ -117,24 +117,6 @@ grep -l "PROMPT:" tests/test_*.py
 
 ---
 
-## 21. Post-Submission Follow-Up Prep
-
-Record within **48 hours** — 5 questions, 30 min async video, ~2 min per answer.
-
-**Prepare while building (write notes in DESIGN.md §8):**
-
-| Likely Question Theme | What to Document Now |
-|-----------------------|----------------------|
-| Detection model struggles | What failed on billing occlusion; what you tried next |
-| visitor_id / Re-ID edge cases | Same door, 3-second gap between different people |
-| Scale at 40 stores | First bottleneck (DB writes? funnel compute? ingest lag?) |
-| VLM vs rule-based zones | Exact prompt if used; why kept/rejected |
-| Funnel accuracy trade-offs | How REENTRY dedup works in your code |
-
-Generic answers fail — every answer must reference **your** CHOICES.md decisions and **your** function names.
-
----
-
 ## Appendix A: Suggested Cursor Rules (derive from this doc)
 
 When creating `.cursor/rules/*.mdc`, split by concern:
