@@ -4,21 +4,32 @@
 
 Submission code: **[`store-intelligence/`](./store-intelligence/)**.
 
-## Quick Start
+## Run the demo
+
+**Repository:** https://github.com/HimanshuB474/Purplle-Round-2-Hack (code in `store-intelligence/`)
+
+Try the **live** dashboard first. If Render is sleeping, slow, or metrics are empty, use the **local** steps below — same app, fully offline after clone.
+
+| | Live (Render) | Local (Docker) |
+|--|----------------|----------------|
+| **Dashboard** | https://purplle-round-2-hack.onrender.com/dashboard | http://localhost:8000/dashboard |
+| API docs | https://purplle-round-2-hack.onrender.com/docs | http://localhost:8000/docs |
+| Metrics | [link](https://purplle-round-2-hack.onrender.com/stores/ST1008/metrics?date=2026-04-10) | http://localhost:8000/stores/ST1008/metrics?date=2026-04-10 |
+
+**Live:** open dashboard → **Live replay** (loads 390 events). First request after idle may take 30–60s.
+
+**Local** (requires Docker Desktop):
 
 ```bash
 git clone git@github.com:HimanshuB474/Purplle-Round-2-Hack.git
 cd Purplle-Round-2-Hack/store-intelligence
-
 docker compose up -d --build
 python scripts/ingest_events.py
-curl "http://localhost:8000/health"
-curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
 ```
 
-**Live dashboard:** http://localhost:8000/dashboard → **Live replay** streams `data/events.jsonl` and updates metrics in real time.
+Then open http://localhost:8000/dashboard (optional: **Live replay** again). Expect **71** visitors, **1.41%** conversion on `2026-04-10`.
 
-**Verify:** `python scripts/verify_docker.py` · `python scripts/validate_part_bc.py` · `pytest` (48 tests)
+**Verify (local):** `pytest -q` · `python scripts/validate_part_bc.py` · `python scripts/verify_docker.py`
 
 ## What is committed
 
@@ -54,6 +65,7 @@ python -m pipeline.detect --root . --no-pos-filter   # keep every abandon (commi
 | Design | [`store-intelligence/docs/DESIGN.md`](./store-intelligence/docs/DESIGN.md) |
 | Choices | [`store-intelligence/docs/CHOICES.md`](./store-intelligence/docs/CHOICES.md) |
 | Pre-submit | [`store-intelligence/docs/SUBMISSION-CHECKLIST.md`](./store-intelligence/docs/SUBMISSION-CHECKLIST.md) |
+| Deploy | [`store-intelligence/docs/DEPLOY.md`](./store-intelligence/docs/DEPLOY.md) |
 
 ## Implementation notes
 

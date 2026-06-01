@@ -23,6 +23,7 @@ def client(tmp_path, monkeypatch):
     db_path = tmp_path / "test.db"
     db_url = f"sqlite:///{db_path}"
     monkeypatch.setenv("DATABASE_URL", db_url)
+    monkeypatch.setenv("AUTO_INGEST_ON_STARTUP", "0")
     config.DATABASE_URL = db_url
     db_module._engine = None
     db_module._SessionLocal = None

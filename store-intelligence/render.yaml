@@ -1,0 +1,19 @@
+# Render Blueprint — https://render.com
+# Connect repo, set Root Directory to store-intelligence (or deploy from this folder).
+services:
+  - type: web
+    name: store-intelligence
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./data/store_intelligence.db
+      - key: POS_CSV_PATH
+        value: /app/data/pos_transactions.csv
+      - key: STORE_LAYOUT_PATH
+        value: /app/data/store_layout.json
+      - key: AUTO_INGEST_ON_STARTUP
+        value: "1"
+      - key: PYTHONUNBUFFERED
+        value: "1"

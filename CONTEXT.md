@@ -50,7 +50,7 @@ End-to-end **Store Intelligence** system: CCTV → detection → events → API 
 
 ## Project Code
 
-Implementation goes in [`store-intelligence/`](./store-intelligence/README.md).
+Implementation: [`store-intelligence/`](./store-intelligence/README.md). **Demo:** [live dashboard](https://purplle-round-2-hack.onrender.com/dashboard) · **fallback:** local Docker in README Quick Start
 
 Large/local-only assets (gitignored): `CCTV Footage/` at repo root. Challenge PDFs, Brigade CSV/XLSX are **not** in git — derived artifacts live under `store-intelligence/data/`. See [store-intelligence/README.md](./store-intelligence/README.md).
 

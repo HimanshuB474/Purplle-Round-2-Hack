@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.bootstrap import seed_events_if_empty
 from app.anomalies import router as anomalies_router
 from app.dashboard import router as dashboard_router
 from app.config import API_VERSION
@@ -22,6 +23,7 @@ from app.metrics import router as metrics_router
 async def lifespan(_app: FastAPI):
     configure_logging()
     init_db()
+    seed_events_if_empty()
     yield
 
 

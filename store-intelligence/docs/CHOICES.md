@@ -119,7 +119,7 @@ Aligned with [DESIGN.md §9](./DESIGN.md#9-implementation-notes--faq).
 
 - **Choice:** Single-page dashboard at `/dashboard` with polling snapshot API; background replay of `events.jsonl` via shared `ingest_raw_events()`.
 - **Rejected:** Separate Node frontend or second container — single `docker compose up` service.
-- **Reviewer:** Open `/dashboard` → **Live replay** → watch unique visitors and conversion rate climb.
+- **Reviewer:** Live https://purplle-round-2-hack.onrender.com/dashboard or local http://localhost:8000/dashboard → **Live replay** → watch unique visitors and conversion rate climb.
 
 ---
 

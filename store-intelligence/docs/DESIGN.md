@@ -181,7 +181,12 @@ Emit logic: `BILLING_QUEUE_JOIN` after `BILLING_JOIN_MIN_SEC` in zone; `BILLING_
 
 ### 9.4 Part E live dashboard (implemented)
 
-**URL:** `http://localhost:8000/dashboard` (same port as API; included in Docker image).
+| Environment | Dashboard URL |
+|-------------|----------------|
+| **Live (Render)** | https://purplle-round-2-hack.onrender.com/dashboard |
+| **Local fallback** | http://localhost:8000/dashboard (`docker compose up` + `python scripts/ingest_events.py`) |
+
+If Render is unavailable, reviewers can run the local path — same Part E UI and replay behaviour.
 
 | Piece | Role |
 |-------|------|
@@ -190,9 +195,9 @@ Emit logic: `BILLING_QUEUE_JOIN` after `BILLING_JOIN_MIN_SEC` in zone; `BILLING_
 | `app/dashboard_replay.py` | Streams `data/events.jsonl` into `ingest_raw_events()` in batches |
 | `dashboard/live.py` | CLI to open browser (`python dashboard/live.py`) |
 
-**Live demo flow:** Click **Live replay** → clears events for `2026-04-10` (optional reset) → ingests ~12 events every 600 ms → **unique visitors**, **conversion %**, and funnel counts update on each poll (~500 ms during replay).
+**Live demo flow:** Click **Live replay** → clears events for `2026-04-10` → ingests ~12 events every 600 ms → **unique visitors**, **conversion %**, and funnel counts update on each poll (~500 ms during replay). On Render, use this after deploy if metrics are empty on first load.
 
-This satisfies Part E: metrics change in real time as the event stream flows, without batch-only `scripts/ingest_events.py` (though that script still works for one-shot ingest).
+Part E: metrics change in real time as the event stream flows. Local one-shot load: `python scripts/ingest_events.py`.
 
 ### 9.5 Operations & scale
 

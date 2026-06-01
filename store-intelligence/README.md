@@ -2,18 +2,28 @@
 
 Purplle Tech Challenge 2026 — Round 2. Brigade Bangalore (`ST1008` / `STORE_BLR_002`).
 
-## Quick Start
+## Run the demo
+
+Try **live** first; if Render is down or slow, use **local Docker** (same UI and metrics).
+
+| | Live (Render) | Local (Docker) |
+|--|----------------|----------------|
+| **Dashboard** | https://purplle-round-2-hack.onrender.com/dashboard | http://localhost:8000/dashboard |
+| API docs | https://purplle-round-2-hack.onrender.com/docs | http://localhost:8000/docs |
+| Metrics | [ST1008 metrics](https://purplle-round-2-hack.onrender.com/stores/ST1008/metrics?date=2026-04-10) | http://localhost:8000/stores/ST1008/metrics?date=2026-04-10 |
+
+**Live:** open dashboard → **Live replay** (390 events). Allow ~30–60s on first load if idle.
+
+**Local fallback:**
 
 ```bash
 git clone git@github.com:HimanshuB474/Purplle-Round-2-Hack.git
 cd Purplle-Round-2-Hack/store-intelligence
-
 docker compose up -d --build
-python scripts/ingest_events.py   # replaces events for that date in data/store_intelligence.db
-curl "http://localhost:8000/stores/ST1008/metrics?date=2026-04-10"
+python scripts/ingest_events.py
 ```
 
-**Live dashboard:** http://localhost:8000/dashboard — **Live replay** ingests `data/events.jsonl` in batches so metrics update on screen.
+Open http://localhost:8000/dashboard — optional **Live replay** to animate metrics. Details: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 **Validate (submission):**
 
@@ -24,9 +34,9 @@ python scripts/validate_part_bc.py
 python scripts/verify_docker.py
 ```
 
-See [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md).
+See [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md) · [docs/DEPLOY.md](docs/DEPLOY.md)
 
-### Verified output (clean Docker run, 2026-05-31)
+### Verified output (local Docker)
 
 After `docker compose up -d --build` and `python scripts/ingest_events.py` (390 events):
 
@@ -102,6 +112,8 @@ Store IDs: `ST1008` and alias `STORE_BLR_002`. Sample date: `2026-04-10`.
 |-----|------|
 | Design | [docs/DESIGN.md](docs/DESIGN.md) |
 | Choices | [docs/CHOICES.md](docs/CHOICES.md) |
+| Deploy / live URL | [docs/DEPLOY.md](docs/DEPLOY.md) |
+| Submit checklist | [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md) |
 | Context | [docs/context/README.md](docs/context/README.md) |
 
 ## Status
