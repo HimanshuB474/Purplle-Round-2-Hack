@@ -21,6 +21,7 @@ class EventEmitter:
         self.store_id = store_id
         self.camera_id = camera_id
         self.events: list[dict[str, Any]] = []
+        self.reid_registry: Any | None = None
 
     def emit(
         self,

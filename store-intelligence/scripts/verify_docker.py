@@ -25,7 +25,7 @@ def _curl(path: str) -> tuple[int, dict | str]:
                 return resp.status, json.loads(body)
             except json.JSONDecodeError:
                 return resp.status, body
-    except URLError as exc:
+    except (URLError, OSError) as exc:
         return 0, str(exc)
 
 
@@ -42,7 +42,7 @@ def _post_ingest(events: list[dict]) -> tuple[int, dict]:
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return resp.status, json.loads(resp.read().decode())
-    except URLError as exc:
+    except (URLError, OSError) as exc:
         return 0, {"error": str(exc)}
 
 
@@ -64,6 +64,7 @@ def main() -> int:
         print(up.stderr or up.stdout)
         return 1
     print("OK: docker compose up -d --build")
+    time.sleep(5)
 
     for attempt in range(30):
         code, body = _curl("/health")

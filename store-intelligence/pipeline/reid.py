@@ -53,6 +53,8 @@ class ActiveVisitor:
     is_staff: bool = False
     appearance: np.ndarray | None = None
     has_entry: bool = False
+    has_exited: bool = False
+    inside_store: bool = False
 
 
 @dataclass
@@ -101,6 +103,25 @@ class CrossCameraRegistry:
         stale = [vid for vid, av in self.active.items() if now - av.last_seen > self.gap * 2]
         for vid in stale:
             del self.active[vid]
+
+    def visitor_has_exited(self, visitor_id: str) -> bool:
+        av = self.active.get(visitor_id)
+        return bool(av and av.has_exited)
+
+    def mark_exited(self, visitor_id: str) -> None:
+        av = self.active.get(visitor_id)
+        if av is None:
+            return
+        av.has_exited = True
+        av.inside_store = False
+
+    def mark_entered(self, visitor_id: str) -> None:
+        av = self.active.get(visitor_id)
+        if av is None:
+            return
+        av.has_exited = False
+        av.inside_store = True
+        av.has_entry = True
 
     def match_or_none(
         self,

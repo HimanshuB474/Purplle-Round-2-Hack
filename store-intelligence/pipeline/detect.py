@@ -54,6 +54,9 @@ def _emit_entry_or_reentry(
     *,
     is_reentry: bool,
 ) -> None:
+    reg = emitter.reid_registry
+    if reg is not None and reg.visitor_has_exited(state.visitor_id):
+        is_reentry = True
     seq = state.bump_session()
     emitter.emit(
         visitor_id=state.visitor_id,
@@ -65,6 +68,10 @@ def _emit_entry_or_reentry(
         confidence=det_conf,
         session_seq=seq,
     )
+    state.has_exited = False
+    state.inside_store = True
+    if reg is not None:
+        reg.mark_entered(state.visitor_id)
 
 
 def _emit_exit(
@@ -94,6 +101,9 @@ def _emit_exit(
     state.current_zones.clear()
     state.billing_joined = False
     state.billing_active = False
+    reg = emitter.reid_registry
+    if reg is not None:
+        reg.mark_exited(state.visitor_id)
 
 
 def _process_staff_hog_frame(
@@ -399,6 +409,7 @@ def process_camera(
         visitor_seq = [0]
 
     emitter = EventEmitter(store_id, camera_id)
+    emitter.reid_registry = reid_registry
     if model is None:
         model = _load_model()
 
@@ -500,6 +511,13 @@ def process_camera(
                     visitor_id=visitor_id,
                     is_staff=is_staff,
                 )
+                if matched_id and reid_registry is not None:
+                    av = reid_registry.active.get(matched_id)
+                    if av is not None:
+                        tracks[tid].has_exited = av.has_exited
+                        tracks[tid].inside_store = av.inside_store
+                        if av.has_entry and not av.has_exited:
+                            tracks[tid].entry_emitted = True
                 if reid_registry is not None:
                     reid_registry.register(
                         visitor_id,
