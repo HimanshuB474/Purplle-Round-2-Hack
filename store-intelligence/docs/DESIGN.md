@@ -121,7 +121,7 @@ Design choices:
 
 **Health (`GET /health`):** Returns `version`, per-store `last_event_at`, `lag_seconds`, `feed_status`. `STALE_FEED` if last event &gt; 10 minutes ago; HTTP 503 if DB unavailable. Root `GET /` lists endpoint URLs for browser sanity.
 
-**Verification scripts:** `scripts/validate_part_ab.py`, `scripts/validate_part_bc.py`, `scripts/verify_docker.py`, `pytest` (46 tests).
+**Verification scripts:** `scripts/validate_part_ab.py`, `scripts/validate_part_bc.py`, `scripts/verify_docker.py`, `pytest` (48 tests).
 
 ## 8. AI-Assisted Decisions
 
